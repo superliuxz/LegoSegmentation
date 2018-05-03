@@ -1,6 +1,6 @@
 # Progress Report for CSC497
-____
-### Week 1 (May 3 ~ May 5)
+---
+**Week 1** (May 3 ~ May 5)
 - [x] Setup a repo
 - [x] Setup CUDA/cuDNN/TF
   - Ubuntu 18.04 minimum install; gtx1070
@@ -37,3 +37,4 @@ ____
 - [ ] Setup OpenCV
 - [ ] Try build a image proc pipeline:
   > Camera -> OpenCV -> TF
+---
