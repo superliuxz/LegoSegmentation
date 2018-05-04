@@ -37,6 +37,18 @@
         b'hello'
         ```
 - [ ] Build a CNN and play with MINST dataset
+  - Study http://cs231n.github.io/
+    - Fundamentals: Nearest Neighbor, SVM/Softmax loss function, Regularization, Gradient Descent, Backpropagation
+    - NN: CNN basics, 
+      - activation functions, `ReLU` is a good default choice
+      - weight init: too small or too big will under/over flow the activation and therfore the gradients. use Gaussian init.
+      - normalize the date with 0 mean and variance = 1 (for each channel)
+      - Teaking of the hyper params go into depth, and i don't think i quite grasp it
+    - intro to TF.
+      - for weights, declare using `tf.Variable` instead of `tf.placehlder`. This avoids copying data from machine memory to GPU memory.
+  - Use preproc'ed dataset (https://www.kaggle.com/c/digit-recognizer/data); the extraction of image data will be practised against OpenCV
+  - CNN design: conv1 -> pool1 -> conv2 -> pool2 -> FC
+  
 - [ ] Setup OpenCV
 - [ ] Try build a image proc pipeline:
   > Camera -> OpenCV -> TF
