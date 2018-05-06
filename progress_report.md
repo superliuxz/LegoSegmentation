@@ -43,7 +43,7 @@
       - activation functions, `ReLU` is a good default choice
       - weight init: too small or too big will under/over flow the activation and therfore the gradients. use Gaussian init.
       - normalize the date with 0 mean and variance = 1 (for each channel)
-      - Teaking of the hyper params go into depth, and i don't think i quite grasp it
+      - Tweaking of the hyper params goes into depth, and i don't think i quite grasp it
     - intro to TF.
       - for weights, declare using `tf.Variable` instead of `tf.placehlder`. This avoids copying data from machine memory to GPU memory.
   - Use preproc'ed dataset (https://www.kaggle.com/c/digit-recognizer/data); the extraction of image data will be practised against OpenCV
