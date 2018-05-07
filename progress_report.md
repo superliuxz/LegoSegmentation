@@ -36,7 +36,7 @@
         ```python
         b'hello'
         ```
-- [ ] Build a CNN and play with MINST dataset
+- [x] Build a CNN and play with MINST dataset
   - Study http://cs231n.github.io/
     - Fundamentals: Nearest Neighbor, SVM/Softmax loss function, Regularization, Gradient Descent, Backpropagation
     - NN: CNN basics, 
@@ -47,8 +47,15 @@
     - intro to TF.
       - for weights, declare using `tf.Variable` instead of `tf.placehlder`. This avoids copying data from machine memory to GPU memory.
   - Use preproc'ed dataset (https://www.kaggle.com/c/digit-recognizer/data); the extraction of image data will be practised against OpenCV
-  - CNN design: conv1 -> pool1 -> conv2 -> pool2 -> FC
-  
+  - CNN design:
+    - the design follows TF's example on MNIST dataset 
+    - conv1 -> pool1 -> conv2 -> pool2 -> FC1 -> FC2
+    - achieved ~ 99.5% accuracy
+    - try generating different plots 
+      - [x] loss/accuracy
+      - [x] confusion matrix
+      - [x] misclassications
+      - [ ] activations of layers 
 - [ ] Setup OpenCV
 - [ ] Try build a image proc pipeline:
   > Camera -> OpenCV -> TF
