@@ -1,6 +1,6 @@
 # Progress Report for CSC497
 ---
-**Week 1** (May 3 ~ May 5)
+**Week 1** (May 6 ~ May 12)
 - [x] Setup a repo
 - [x] Setup CUDA/cuDNN/TF
   - Ubuntu 18.04 minimum install; gtx1070
