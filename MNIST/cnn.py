@@ -165,11 +165,13 @@ class CNN:
         plot the confusion matrix for random half of the training set
         """
         (train_data, train_label, *_), _ = self.split_train_valid(n=2)
+        logger.info('compute confusion matrix for random half of the trainin set ...')
         with self.restore_session() as sess:
             pred = self.y_pred.eval(session=sess, feed_dict={
                 self.x: train_data,
                 self.keep_prob: 1.0
             })
+        logger.info('done')
         cnf_mat = confusion_matrix(np.argmax(pred, 1), np.argmax(train_label, 1)).astype(np.int)
 
         labels = [str(i) for i in range(10)]
@@ -192,11 +194,13 @@ class CNN:
         plot the misclassified image for random half of the training set
         """
         (train_data, train_label, *_), _ = self.split_train_valid(n=2)
+        logger.info('compute prediction for random half of the trainin set ...')
         with self.restore_session() as sess:
             pred = self.y_pred.eval(session=sess, feed_dict={
                 self.x: train_data,
                 self.keep_prob: 1.0
             })
+        logger.info('done')
         true_label = np.argmax(train_label, 1)
         pred_label = np.argmax(pred, 1)
 
@@ -221,6 +225,7 @@ class CNN:
         plot the activation function for conv and pool
         """
         img_num = np.random.randint(0, self.train_data.shape[0])
+        logger.info('recompute activations for different layers ...')
         with self.restore_session() as sess:
             h1 = self.h1.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num+1],
@@ -242,6 +247,7 @@ class CNN:
                 self.x: self.train_data[img_num: img_num + 1],
                 self.keep_prob: 1.0
             })
+        logger.info('done')
         plt.figure(figsize=(15, 10))
         # original image
         plt.subplot(2, 3, 1)
@@ -283,6 +289,26 @@ class CNN:
 
         plt.show()
 
+    def write_submission(self):
+        logger.info('compute predicion on test dataset...')
+        with self.restore_session() as sess:
+            pred = self.y_pred.eval(session=sess, feed_dict={
+                self.x: self.test_data,
+                self.keep_prob: 1
+            })
+        logger.info('done')
+        logger.info('start writing submission file...')
+        pred = np.argmax(pred, 1)
+        np.savetxt(
+            'submission.csv',
+            np.c_[range(1, len(pred)+1), pred],
+            delimiter=',',
+            header='ImageId,Label',
+            comments='',
+            fmt='%d'
+        )
+        logger.info('done')
+
     def restore_session(self) -> tf.Session:
         tf.reset_default_graph()
         saver = tf.train.import_meta_graph(os.path.join(os.getcwd(), 'my_model.meta'))
@@ -323,8 +349,9 @@ class CNN:
 
 if __name__ == '__main__':
     cnn = CNN()
-    cnn.train(100)
-    cnn.plot_training_result()
-    cnn.plot_confusion_matrix()
-    cnn.plot_misclassification()
-    cnn.plot_activation()
+    # cnn.train(100)
+    # cnn.plot_training_result()
+    # cnn.plot_confusion_matrix()
+    # cnn.plot_misclassification()
+    # cnn.plot_activation()
+    cnn.write_submission()

@@ -1,6 +1,6 @@
 # MNIST
 ---
-**My Experiment with MNIST dataset, ~99.5% accuracy**
+**My Experiment with MNIST dataset, 98.442% accuracy on Kaggle test set**
 - I am using Fstring and typing hint so at lease Python3.6
 - create a virtualenv
 - `pip install -r requirents.txt`

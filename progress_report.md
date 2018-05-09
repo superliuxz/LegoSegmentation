@@ -50,7 +50,6 @@
   - CNN:
     - the design follows TF's example on MNIST dataset 
     - conv1 -> pool1 -> conv2 -> pool2 -> FC1 -> FC2 (output)
-    - achieved ~ 99.5% accuracy
     - try generating different plots 
       - [x] loss/accuracy
       - [x] confusion matrix
