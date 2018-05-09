@@ -13,7 +13,7 @@ import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARN)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
@@ -33,32 +33,38 @@ class CNN:
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         # 1st conv layer
-        self.w1 = tf.Variable(tf.truncated_normal([5, 5, 1, 32], stddev=0.1), name='w1')
-        self.b1 = tf.Variable(tf.constant(0.1, shape=[32]), name='b1')
+        self.w1 = tf.Variable(tf.truncated_normal([5, 5, 1, 36], stddev=0.1), name='w1')
+        self.b1 = tf.Variable(tf.constant(0.1, shape=[36]), name='b1')
+        # (-1, 28, 28, 36)
         self.h1 = tf.nn.relu(
             tf.nn.conv2d(self.x, self.w1, strides=[1, 1, 1, 1], padding='SAME') + self.b1, name='h1')
         # 1st pooling layer
+        # (-1, 14, 14, 36)
         self.pool1 = tf.nn.max_pool(self.h1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         # 2nd conv layer
-        self.w2 = tf.Variable(tf.truncated_normal([5, 5, 32, 64], stddev=0.1), name='w2')
+        self.w2 = tf.Variable(tf.truncated_normal([5, 5, 36, 64], stddev=0.1), name='w2')
         self.b2 = tf.Variable(tf.constant(0.1, shape=[64]), name='b2')
+        # (-1, 14, 14, 64)
         self.h2 = tf.nn.relu(
             tf.nn.conv2d(self.pool1, self.w2, strides=[1, 1, 1, 1], padding='SAME') + self.b2, name='h2')
         # 2nd pooling layer
+        # (-1, 7, 7, 64)
         self.pool2 = tf.nn.max_pool(self.h2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
         # fc1
         # after twice maxpooling (downsampling), 28x28x1 image -> 7*7*64
-        self.w3 = tf.Variable(tf.truncated_normal([7 * 7 * 64, 1024], stddev=0.1), name='w3')
+        self.w3 = tf.Variable(tf.truncated_normal([7*7*64, 1024], stddev=0.1), name='w3')
         self.b3 = tf.Variable(tf.constant(0.1, shape=[1024]), name='b3')
         self.flat_pool2 = tf.reshape(self.pool2, [-1, 7*7*64], name='flat_pool2')
+        # (-1, 1024)
         self.h3 = tf.nn.relu(tf.matmul(self.flat_pool2, self.w3) + self.b3, name='h3')
         self.h3_drop = tf.nn.dropout(self.h3, self.keep_prob, name='h3_drop')
 
         # fc2, output
         self.w4 = tf.Variable(tf.truncated_normal([1024, 10], stddev=0.1), name='w4')
         self.b4 = tf.Variable(tf.constant(0.1, shape=[10]), name='b4')
+        # (-1, 10)
         self.y_pred = tf.add(tf.matmul(self.h3_drop, self.w4), self.b4, name='y_pred')
 
         self.cross_entropy_loss = tf.reduce_mean(
@@ -158,7 +164,7 @@ class CNN:
         """
         plot the confusion matrix for random half of the training set
         """
-        _, (train_data, train_label, *_) = self.split_train_valid(n=2)
+        (train_data, train_label, *_), _ = self.split_train_valid(n=2)
         with self.restore_session() as sess:
             pred = self.y_pred.eval(session=sess, feed_dict={
                 self.x: train_data,
@@ -185,7 +191,7 @@ class CNN:
         """
         plot the misclassified image for random half of the training set
         """
-        _, (train_data, train_label, *_) = self.split_train_valid(n=2)
+        (train_data, train_label, *_), _ = self.split_train_valid(n=2)
         with self.restore_session() as sess:
             pred = self.y_pred.eval(session=sess, feed_dict={
                 self.x: train_data,
@@ -208,6 +214,73 @@ class CNN:
                     plt.title(f'{true_label[false_pred[curr]]}/{pred_label[false_pred[curr]]}')
                     plt.imshow(train_data[false_pred[curr]].reshape(28, 28), cmap='binary')
         plt.tight_layout()
+        plt.show()
+
+    def plot_activation(self):
+        """
+        plot the activation function for conv and pool
+        """
+        img_num = np.random.randint(0, self.train_data.shape[0])
+        with self.restore_session() as sess:
+            h1 = self.h1.eval(session=sess, feed_dict={
+                self.x: self.train_data[img_num: img_num+1],
+                self.keep_prob: 1.0
+            })
+            pool1 = self.pool1.eval(session=sess, feed_dict={
+                self.x: self.train_data[img_num: img_num+1],
+                self.keep_prob: 1.0
+            })
+            h2 = self.h2.eval(session=sess, feed_dict={
+                self.x: self.train_data[img_num: img_num + 1],
+                self.keep_prob: 1.0
+            })
+            pool2 = self.pool2.eval(session=sess, feed_dict={
+                self.x: self.train_data[img_num: img_num + 1],
+                self.keep_prob: 1.0
+            })
+            h3 = self.h3.eval(session=sess, feed_dict={
+                self.x: self.train_data[img_num: img_num + 1],
+                self.keep_prob: 1.0
+            })
+        plt.figure(figsize=(15, 10))
+        # original image
+        plt.subplot(2, 3, 1)
+        plt.imshow(self.train_data[img_num].reshape(28, 28), cmap='binary')
+        # conv1
+        plt.subplot(2, 3, 2)
+        plt.title(f'conv1 {h1.shape}')
+        h1 = np.reshape(h1, (-1, 28, 28, 6, 6))
+        # TODO: I actually don't know what these magical numbers are
+        h1 = np.transpose(h1, (0, 3, 1, 4, 2))
+        h1 = np.reshape(h1, (-1, 6*28, 6*28))
+        plt.imshow(h1[0], cmap='binary')
+        # pool1
+        plt.subplot(2, 3, 3)
+        plt.title(f'pool1 {pool1.shape}')
+        pool1 = np.reshape(pool1, (-1, 7, 7, 6, 6))
+        pool1 = np.transpose(pool1, (0, 3, 1, 4, 2))
+        pool1 = np.reshape(pool1, (-1, 6*7, 6*7))
+        plt.imshow(pool1[0], cmap='binary')
+        # conv2
+        plt.subplot(2, 3, 4)
+        plt.title(f'conv2 {h2.shape}')
+        h2 = np.reshape(h2, (-1, 14, 14, 8, 8))
+        h2 = np.transpose(h2, (0, 3, 1, 4, 2))
+        h2 = np.reshape(h2, (-1, 8*14, 8*14))
+        plt.imshow(h2[0], cmap='binary')
+        # pool2
+        plt.subplot(2, 3, 5)
+        plt.title(f'pool2 {pool2.shape}')
+        pool2 = np.reshape(pool2, (-1, 7, 7, 8, 8))
+        pool2 = np.transpose(pool2, (0, 3, 1, 4, 2))
+        pool2 = np.reshape(pool2, (-1, 8*7, 8*7))
+        plt.imshow(pool2[0], cmap='binary')
+        # fc1
+        plt.subplot(2, 3, 6)
+        plt.title(f'fc1 {h3.shape}')
+        h3 = np.reshape(h3, (-1, 32, 32))
+        plt.imshow(h3[0], cmap='binary')
+
         plt.show()
 
     def restore_session(self) -> tf.Session:
@@ -254,3 +327,4 @@ if __name__ == '__main__':
     cnn.plot_training_result()
     cnn.plot_confusion_matrix()
     cnn.plot_misclassification()
+    cnn.plot_activation()
