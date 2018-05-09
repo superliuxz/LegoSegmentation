@@ -49,14 +49,15 @@
   - Use preproc'ed dataset (https://www.kaggle.com/c/digit-recognizer/data); the extraction of image data will be practised against OpenCV
   - CNN:
     - the design follows TF's example on MNIST dataset 
-    - conv1 -> pool1 -> conv2 -> pool2 -> FC1 -> FC2
+    - conv1 -> pool1 -> conv2 -> pool2 -> FC1 -> FC2 (output)
     - achieved ~ 99.5% accuracy
     - try generating different plots 
       - [x] loss/accuracy
       - [x] confusion matrix
       - [x] misclassications
       - [x] activations of layers
-    - [ ] create a jupyter notebook for visuals
+        - [ ] the part of code that plots the activations are copied from somewhere else. **make sure I understand how to plot those tensors**.
+      - [x] create a jupyter notebook for visuals
 - [ ] Setup OpenCV
 - [ ] Try build a image proc pipeline:
   > Camera -> OpenCV -> TF
