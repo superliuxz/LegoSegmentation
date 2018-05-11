@@ -57,7 +57,15 @@
       - [x] activations of layers
         - [ ] the part of code that plots the activations are copied from somewhere else. **make sure I understand how to plot those tensors**.
       - [x] create a jupyter notebook for visuals
-- [ ] Setup OpenCV
-- [ ] Try build a image proc pipeline:
-  > Camera -> OpenCV -> TF
+    - achieved 98.442% accuracy. to improve, I have tried:
+      - [x] lower the keep probability from 0.5 down to 1/3, which further prevents overfitting. **EFFECTIVE**.
+      - [x] reduce the learning rate from 1e-3 to 1e-4, **however**, with 1e-4 the minization does not converge fast enough.
+      - [x] reduce the # of filters in the 2nd conv layer (from 64 down to 32), and reduce the # of feature of fc1 layer (from 1024 to 512). **EFFECTIVE**.
+      - [x] normalize input data differently (`x/x.max()` instead of `(x-x.mean())/x.std()`). **EFFECTIVE**.
+      - [x] reduce filter size from 5x5 to 3x3. **EFFECTIVE**. this gives the best result so far, 99.014%.
+      - [x] augmenting the input data by random sampling a 24x24 block out of 28x28. **INEFFECTIVE**.
+      - [x] augmenting the input data by random sampling two 24x24 blocks out of 28x28 (so double the training set). **INEFFECTIVE**.
+      - [ ] other means of augmenting: rotation, flip etc.
+- [x] Setup OpenCV
+  - [ ] given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size
 ---

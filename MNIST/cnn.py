@@ -1,6 +1,8 @@
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import os
+from queue import Queue
+import threading
 from typing import Callable
 
 import matplotlib.pyplot as plt
@@ -25,21 +27,21 @@ class CNN:
     def __init__(self):
         normalize_func = lambda x: x/x.max() # lambda x: (x-x.mean())/x.std()
         # crop a random 24x24 by 28x28 based on https://cs.stanford.edu/people/karpathy/convnetjs/demo/mnist.html
-        feat_extract_func = lambda x: image.PatchExtractor(patch_size=(24, 24), max_patches=1, random_state=1)\
-                                           .transform(x).reshape(-1, 24, 24, 1)
         self.train_data, self.train_label, self.test_data \
-            = self.load_data(normalize_func=normalize_func, feat_extract=feat_extract_func)
+            = self.load_data(normalize_func=normalize_func)
         
         self.img_size = self.train_data.shape[1]
         # depth of the conv1 filters. 36=6*6 easy plotting
-        self.conv1_filter_depth = 36
+        self.conv1_filter_depth = 32
         self.conv1_filter_depth_sqrt = np.int(np.sqrt(self.conv1_filter_depth))
         # depth of the conv2 filters. 64=**8 easy plotting
-        self.conv2_filter_depth = 64
+        self.conv2_filter_depth = 32
         self.conv2_filter_depth_sqrt = np.int(np.sqrt(self.conv2_filter_depth))
         # fully connected feature size. 576=24*24 easy plotting
-        self.fc_feat_size = 576
+        self.fc_feat_size = 512
         self.fc_feat_size_sqrt = np.int(np.sqrt(self.fc_feat_size))
+
+        self.learning_rate = 10**-3
 
         tf.reset_default_graph()
 
@@ -88,13 +90,13 @@ class CNN:
             tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.y, logits=self.y_pred),
             name='cross_entropy_loss'
         )
-        self.training_step = tf.train.AdamOptimizer(10 ** -3).minimize(self.cross_entropy_loss, name='training_step')
+        self.training_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cross_entropy_loss, name='training_step')
         self.correct_pred = tf.equal(tf.argmax(self.y_pred, 1), tf.argmax(self.y, 1), name='correct_pred')
         self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32), name='accuracy')
 
         self.saver = tf.train.Saver()
 
-    def train(self, batch_size: int):
+    def train(self, batch_size: int=100):
         """
         ~5 mins on a gtx1070
         """
@@ -128,7 +130,7 @@ class CNN:
         self.result.to_csv('result.csv', index=False)
         logger.info(f'done')
 
-    def load_data(self, normalize_func: Callable=None, feat_extract: Callable=None) -> (np.array, np.array, np.array):
+    def load_data(self, normalize_func: Callable=None, img_extract_patches: int=0) -> (np.array, np.array, np.array):
         train = pd.read_csv('train.csv.gz', header=0)
         # onehot encode the labels
         enc = OneHotEncoder(sparse=False)
@@ -147,18 +149,25 @@ class CNN:
             train_data, test_data = result
             logger.info(f'done')
 
-        if feat_extract is not None:
+        if img_extract_patches > 0:
+            extract_func = lambda x, p: image.PatchExtractor(patch_size=(24, 24), max_patches=p, random_state=1)\
+                                             .transform(x).reshape(-1, 24, 24, 1)
             logger.info(f'cropping 24x24 outta 28x28...')
-            pool = ThreadPool(2)
-            result = pool.map(feat_extract, [train_data, test_data])
-            pool.close()
-            pool.join()
-            train_data, test_data = result
+            q = Queue()
+            t = threading.Thread(target=lambda q, x, p: q.put(extract_func(x, p)), args=(q, train_data, img_extract_patches))
+            t.daemon = True
+            t.start()
+            t = threading.Thread(target=lambda q, x, p: q.put(extract_func(x, p)), args=(q, test_data, 1))
+            t.daemon = True
+            t.start()
+            test_data = q.get()
+            train_data = q.get()
+            train_label = np.tile(train_label, img_extract_patches).reshape(-1, 10)
             logger.info(f'done')
 
-        logger.debug(f'training data: {train_data.shape}')
-        logger.debug(f'train label: {train_label.shape}')
-        logger.debug(f'test data: {test_data.shape}')
+        logger.info(f'training data: {train_data.shape}')
+        logger.info(f'train label: {train_label.shape}')
+        logger.info(f'test data: {test_data.shape}')
 
         return train_data, train_label, test_data
 
@@ -166,7 +175,7 @@ class CNN:
         """
         10-fold CV
         """
-        kfold = KFold(n_splits=n, shuffle=shuffle)
+        kfold = KFold(n_splits=n, shuffle=shuffle, random_state=1)
         for train_idx, valid_idx in kfold.split(self.train_data, self.train_label):
             yield self.train_data[train_idx], self.train_label[train_idx], \
                   self.train_data[valid_idx], self.train_label[valid_idx]
@@ -375,9 +384,9 @@ class CNN:
 
 if __name__ == '__main__':
     cnn = CNN()
-    cnn.train(100)
-    cnn.plot_training_result()
-    cnn.plot_confusion_matrix()
-    cnn.plot_misclassification()
-    cnn.plot_activation()
+    cnn.train(batch_size=100)
+    # cnn.plot_training_result()
+    # cnn.plot_confusion_matrix()
+    # cnn.plot_misclassification()
+    # cnn.plot_activation()
     cnn.write_submission()
