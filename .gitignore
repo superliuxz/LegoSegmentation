@@ -103,9 +103,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+.idea
+.vscode
 checkpoint
 *.data-*
 *.index
 *.meta
 *.png
 *.csv
+

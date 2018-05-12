@@ -67,5 +67,13 @@
       - [x] augmenting the input data by random sampling two 24x24 blocks out of 28x28 (so double the training set). **INEFFECTIVE**.
       - [ ] other means of augmenting: rotation, flip etc.
 - [x] Setup OpenCV
-  - [ ] given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size
+  - Perspective Transformation (https://docs.opencv.org/3.4.1/da/d6e/tutorial_py_geometric_transformations.html)
+  - Canny edge detection (https://docs.opencv.org/3.4.1/da/d22/tutorial_py_canny.html)
+  - Contour (https://docs.opencv.org/3.4.1/d3/d05/tutorial_py_table_of_contents_contours.html)
+  - [ ] given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size.
+    - the Cam should not always be perfectly on top of the board (use perspective transformation when necessary)
+- [ ] My workstation just decides not to boot anymore... need to fix it **ASAP**
 ---
+**Week 2** (May 13 ~ May 19)
+- [ ] buy some generic lego bricks from Amazon
+- [ ] start to collect data
