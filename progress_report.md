@@ -72,8 +72,18 @@
   - Contour (https://docs.opencv.org/3.4.1/d3/d05/tutorial_py_table_of_contents_contours.html)
   - [ ] given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size.
     - the Cam should not always be perfectly on top of the board (use perspective transformation when necessary)
-- [ ] My workstation just decides not to boot anymore... need to fix it **ASAP**
+    - this is left as a TODO. at this stage, I would like to work onthe problem that is relative simple.
+- [x] My workstation just decides not to boot anymore... need to fix it **ASAP**
+  - [ ] waiting for Intel's replacement to arrive
 ---
 **Week 2** (May 13 ~ May 19)
 - [ ] buy some generic lego bricks from Amazon
 - [ ] start to collect data
+  - gonna be really tedious
+  - to simplify the problem: 
+    - use only blocks with two different color: blue and yellow;
+    - use blocks with three different size: 1x1, 1x2 and 1x3
+    - as a result the encoding of the board should be:
+      > 001111002200....002001100..., where 0=background, 1=yellow, 2=blue
+    - do not collect data from different lighting condition and perspective angle.
+    - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick)
