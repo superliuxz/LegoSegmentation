@@ -79,11 +79,12 @@
 **Week 2** (May 13 ~ May 19)
 - [ ] buy some generic lego bricks from Amazon
 - [ ] start to collect data
-  - Okay re-arranging Lego bricks and taking picture is really killing me. I am just going to take ~ 100 samples and augmenting on the sample data set (90, 180, 270 degree rotation should yield 3x the data set).
+  - re-arranging Lego bricks and taking picture is painful. The first batch of 100 sample pictures are taken. Extra data will be produced by different means of augmentation.
   - **Qn**: short on training data, what to do?
     - is it possible to partition each picture into, say 2x4-1=7 (minus 1 becoz top right corner has to have the directional brick) grid, and randomly shuffle those 8 grids to recompose a new picture? what if there is a brick on the boundary? and for the top right corner becoz
   - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick)
       - **Qn**: is this necessary? can i let CNN learn the direction of the bricks flow? I am not confident in CNN on this because it is very hard to tell from left to right or right to left.
+  - the bricks are all oriented horizontally
   - to simplify the problem: 
     - use only blocks with two different color: blue and yellow;
     - use blocks with three different size: 1x1, 1x2 and 1x3
