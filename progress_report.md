@@ -72,14 +72,17 @@
   - Contour (https://docs.opencv.org/3.4.1/d3/d05/tutorial_py_table_of_contents_contours.html)
   - [ ] **TODO**. given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size.
     - the cam should have various perspective angle and picture should be taken under various lighting conditions.
-    - this is left as a TODO because I am trying to optimize 
+    - this is left as a TODO because I should work out the simple case first, then generalize
 - [x] My workstation just decides not to boot anymore... need to fix it **ASAP**
   - [ ] waiting for Intel's replacement to arrive
 ---
 **Week 2** (May 13 ~ May 19)
 - [ ] buy some generic lego bricks from Amazon
 - [ ] start to collect data
-  - re-arranging Lego bricks and taking picture is painful. The first batch of 100 sample pictures are taken. Extra data will be produced by different means of augmentation.
+  - re-arranging Lego bricks and taking picture is painful。
+  - [x] The first batch of 100 sample pictures are taken.
+  - [ ] Extra data will be produced by different means of augmentation.
+    - [ ] automate this process.
   - **Qn**: short on training data, what to do?
     - is it possible to partition each picture into, say 2x4-1=7 (minus 1 becoz top right corner has to have the directional brick) grid, and randomly shuffle those 8 grids to recompose a new picture? what if there is a brick on the boundary? and for the top right corner becoz
   - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick)
