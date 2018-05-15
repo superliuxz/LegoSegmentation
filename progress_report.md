@@ -81,6 +81,9 @@
 - [ ] start to collect data
   - re-arranging Lego bricks and taking picture is painful。
   - [x] The first batch of 100 sample pictures are taken.
+    - [ ] now I need to label the 100 images. I have 12 bricks on each board so I have to find the position, span and color for 1200 bricks...
+      - is there an smarter way of doing this?
+        - https://datascience.stackexchange.com/questions/15509/crop-background-from-image
   - [ ] Extra data will be produced by different means of augmentation.
     - [ ] automate this process.
   - **Qn**: short on training data, what to do?
