@@ -78,16 +78,11 @@
 ---
 **Week 2** (May 13 ~ May 19)
 - [ ] buy some generic lego bricks from Amazon
-- [ ] start to collect data
-  - re-arranging Lego bricks and taking picture is painful。
-  - [x] The first batch of 100 sample pictures are taken.
-    - [ ] now I need to label the 100 images. I have 12 bricks on each board so I have to find the position, span and color for 1200 bricks...
-      - is there an smarter way of doing this?
-        - https://datascience.stackexchange.com/questions/15509/crop-background-from-image
+- [x] start to collect data
+    - 100 sample picture with labels took me two whole days...
   - [ ] Extra data will be produced by different means of augmentation.
     - [ ] automate this process.
-  - **Qn**: short on training data, what to do?
-    - is it possible to partition each picture into, say 2x4-1=7 (minus 1 becoz top right corner has to have the directional brick) grid, and randomly shuffle those 8 grids to recompose a new picture? what if there is a brick on the boundary? and for the top right corner becoz
+  - **Qn**: in general, if short on training data, what to do?
   - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick)
       - **Qn**: is this necessary? can i let CNN learn the direction of the bricks flow? I am not confident in CNN on this because it is very hard to tell from left to right or right to left.
   - the bricks are all oriented horizontally
