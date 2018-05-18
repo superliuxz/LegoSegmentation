@@ -77,7 +77,7 @@
   - [ ] waiting for Intel's replacement to arrive
 ---
 **Week 2** (May 13 ~ May 19)
-- [ ] buy some generic lego bricks from Amazon
+- [ ] **TODO** buy some generic lego bricks from Amazon
 - [x] start to collect data
     - 100 sample picture with labels took me two whole days...
   - [ ] Extra data will be produced by different means of augmentation.
@@ -91,3 +91,7 @@
     - use blocks with three different size: 1x1, 1x2 and 1x3
   - as a result the encoding of the board should be:
     > 001111002200....002001100..., where 0=background, 1=yellow, 2=blue
+- [ ] start training on the 100 sample pictures
+  - modify the model built for MNIST:
+  - initial result: terrible. R2 is only 0.02...
+  - tried to teak the hyper params and augmenting data, none really works
