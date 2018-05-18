@@ -5,6 +5,7 @@
 - [x] Setup CUDA/cuDNN/TF
   - Ubuntu 18.04 minimum install; gtx1070
   - Enable multiverse repo and install `nvidia-390`
+  - [ ] **TODO** it's 2018. Dockerize the following environment.
   - from `https://developer.nvidia.com/cuda-90-download-archive` download the CUDA 9.0 (no `18.04` official support but `17.04` works just fine), and install two patches
     - avoid `deb (network)` as Ubuntu 18.04 upstream has newer version.
     - CUDA 9.1 is available in Ubuntu 18.04 repo but Tensorflow 1.8 has not yet to support it. One will need to compile TF from source.
@@ -70,7 +71,7 @@
   - Perspective Transformation (https://docs.opencv.org/3.4.1/da/d6e/tutorial_py_geometric_transformations.html)
   - Canny edge detection (https://docs.opencv.org/3.4.1/da/d22/tutorial_py_canny.html)
   - Contour (https://docs.opencv.org/3.4.1/d3/d05/tutorial_py_table_of_contents_contours.html)
-  - [ ] **TODO**. given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size.
+  - [ ] **Optional**. given an image with a rect board in it, automate the process using OpenCV to crop the board out of the image, and normalize the image size.
     - the cam should have various perspective angle and picture should be taken under various lighting conditions.
     - this is left as a TODO because I should work out the simple case first, then generalize
 - [x] My workstation just decides not to boot anymore... need to fix it **ASAP**
@@ -80,18 +81,22 @@
 - [ ] **TODO** buy some generic lego bricks from Amazon
 - [x] start to collect data
     - 100 sample picture with labels took me two whole days...
-  - [ ] Extra data will be produced by different means of augmentation.
+  - [x] Extra data will be produced by different means of augmentation.
     - [ ] automate this process.
-  - **Qn**: in general, if short on training data, what to do?
-  - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick)
-      - **Qn**: is this necessary? can i let CNN learn the direction of the bricks flow? I am not confident in CNN on this because it is very hard to tell from left to right or right to left.
+      - [x] apply a rotation between 0~360 degree.
+        - slow down the computatiion, not really effective
+      - [ ] apply Gaussian noises.
+  - on the board, specify a 'forward' direction (top right corner with a blue 1x1 brick).
   - the bricks are all oriented horizontally
   - to simplify the problem: 
     - use only blocks with two different color: blue and yellow;
-    - use blocks with three different size: 1x1, 1x2 and 1x3
+    - use blocks with four different sizes: 1x1, 1x2, 1x3 and 1x4
   - as a result the encoding of the board should be:
     > 001111002200....002001100..., where 0=background, 1=yellow, 2=blue
-- [ ] start training on the 100 sample pictures
+- [x] start training on the 100 sample pictures
   - modify the model built for MNIST:
   - initial result: terrible. R2 is only 0.02...
-  - tried to teak the hyper params and augmenting data, none really works
+  - after re-encoding the labels for each matrix (blue: 2-> 200, yellow: 1->100), R2 ~ 0.98, however the MSE is still big, and the prediction is very marginal
+  - tried to tweak the hyper params and augmenting data, none really works
+---
+**Week 3** (May 20 ~ May 16)
