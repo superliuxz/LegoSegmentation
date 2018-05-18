@@ -110,7 +110,7 @@ class CNN:
         logger.info(f'start training...')
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for i in range(50):
+            for i in range(25):
                 for cv_idx, (train_data, train_label, valid_data, valid_label) in enumerate(self.split_train_valid()):
                     batch_idx = 0
                     while batch_idx < train_data.shape[0]:
