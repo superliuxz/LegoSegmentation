@@ -56,7 +56,6 @@
       - [x] confusion matrix
       - [x] misclassications
       - [x] activations of layers
-        - [ ] the part of code that plots the activations are copied from somewhere else. **make sure I understand how to plot those tensors**.
       - [x] create a jupyter notebook for visuals
     - achieved 98.442% accuracy. to improve, I have tried:
       - [x] lower the keep probability from 0.5 down to 1/3, which further prevents overfitting. **EFFECTIVE**.
@@ -98,5 +97,7 @@
   - initial result: terrible. R2 is only 0.02...
   - after re-encoding the labels for each matrix (blue: 2-> 200, yellow: 1->100), R2 ~ 0.98, however the MSE is still big, and the prediction is very marginal
   - tried to tweak the hyper params and augmenting data, none really works
+  - added batch normalization and l2 regularization, change from max pool to average pool
+  - [x] plot the activation of each layer
 ---
 **Week 3** (May 20 ~ May 16)

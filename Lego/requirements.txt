@@ -1,1 +1,10 @@
 opencv-contrib-python
+ipython
+jupyter
+matplotlib
+numpy
+pandas
+scikit-learn
+scikit-image
+scipy
+tensorflow-gpu

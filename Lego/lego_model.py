@@ -1,16 +1,12 @@
 import cv2
 import logging
-from multiprocessing.dummy import Pool as ThreadPool
 import os
-from queue import Queue
 import tarfile
-import threading
-from typing import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+from skimage import transform
 from sklearn.model_selection import KFold
 import tensorflow as tf
 
@@ -22,30 +18,29 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 tf.logging.set_verbosity(tf.logging.INFO)
 
-np.random.seed(10)
+np.random.seed(0)
 
 
 class CNN:
-    def __init__(self):
-        # normalize_func = lambda x: x/x.max() # lambda x: (x-x.mean())/x.std()
-        normalize_func = lambda x: (x-x.mean())/x.std()
-        # crop a random 24x24 by 28x28 based on https://cs.stanford.edu/people/karpathy/convnetjs/demo/mnist.html
+    def __init__(self, dataset, **kw):
+
         self.train_data, self.train_label \
-            = self.load_data(normalize_func=normalize_func)
+            = self.load_data(dataset, random_rotate=1)
         
         self.img_h = self.train_data.shape[1]
         self.img_w = self.train_data.shape[2]
-        # depth of the conv1 filters. 36=6*6 easy plotting
-        self.conv1_filter_depth = 16
-        self.conv1_filter_depth_sqrt = np.int(np.sqrt(self.conv1_filter_depth))
-        # depth of the conv2 filters. 64=**8 easy plotting
-        self.conv2_filter_depth = 32
-        self.conv2_filter_depth_sqrt = np.int(np.sqrt(self.conv2_filter_depth))
-        # fully connected feature size. 576=24*24 easy plotting
-        self.fc_feat_size = 1024
-        self.fc_feat_size_sqrt = np.int(np.sqrt(self.fc_feat_size))
 
-        self.learning_rate = 10**-3
+        self.conv1_filter_depth = kw.get('conv1_depth')
+
+        self.conv2_filter_depth = kw.get('conv2_depth')
+
+        self.fc_feat_size = kw.get('fc_feat')
+
+        self.learning_rate = kw.get('lr')
+        self.conv1_size = kw.get('conv1_size')
+        self.conv2_size = kw.get('conv2_size')
+
+        self.alpha = kw.get('regularization')
 
         tf.reset_default_graph()
 
@@ -56,30 +51,34 @@ class CNN:
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         # 1st conv layer
-        self.w1 = tf.Variable(tf.truncated_normal([3, 3, 3, self.conv1_filter_depth], stddev=0.1), name='w1')
+        self.w1 = tf.Variable(tf.truncated_normal([self.conv1_size, self.conv1_size, 3, self.conv1_filter_depth], stddev=0.1), name='w1')
         self.b1 = tf.Variable(tf.constant(0.1, shape=[self.conv1_filter_depth]), name='b1')
-        # (-1, self.img_size, self.img_size, self.filter_size)
+        # (-1, self.img_h, self.img_w, self.conv1_filter_depth)
         self.h1 = tf.nn.relu(
-            tf.nn.conv2d(self.x, self.w1, strides=[1, 1, 1, 1], padding='SAME') + self.b1, name='h1')
+            tf.layers.batch_normalization(
+                tf.nn.conv2d(self.x, self.w1, strides=[1, 1, 1, 1], padding='SAME') + self.b1), name='h1')
         self.print_h1 = tf.Print(self.h1, [self.h1], 'h1: ')
+
         # 1st pooling layer
-        # (-1, self.img_size/2, self.img_size/2, self.filter_size)
-        self.pool1 = tf.nn.max_pool(self.h1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+        # (-1, self.img_h/2, self.img_w/2, self.conv1_filter_depth)
+        self.pool1 = tf.nn.avg_pool(self.h1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         # 2nd conv layer
         self.w2 = tf.Variable(tf.truncated_normal(
-            [3, 3, self.conv1_filter_depth, self.conv2_filter_depth], stddev=0.1), name='w2')
+            [self.conv2_size, self.conv2_size, self.conv1_filter_depth, self.conv2_filter_depth], stddev=0.1), name='w2')
         self.b2 = tf.Variable(tf.constant(0.1, shape=[self.conv2_filter_depth]), name='b2')
-        # (-1, self.img_size/2, self.img_size/2, self.filter_size)
+        # (-1, self.img_h/2, self.img_w/2, self.conv2_filter_depth)
         self.h2 = tf.nn.relu(
-            tf.nn.conv2d(self.pool1, self.w2, strides=[1, 1, 1, 1], padding='SAME') + self.b2, name='h2')
+            tf.layers.batch_normalization(
+                tf.nn.conv2d(self.pool1, self.w2, strides=[1, 1, 1, 1], padding='SAME') + self.b2), name='h2')
         self.print_h2 = tf.Print(self.h2, [self.h2], 'h2: ')
+
         # 2nd pooling layer
-        # (-1, self.img_size/4,self.img_size/4, self.filter_size)
-        self.pool2 = tf.nn.max_pool(self.h2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+        # (-1, self.img_h/4,self.w/4, self.conv2_filter_depth)
+        self.pool2 = tf.nn.avg_pool(self.h2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
         # fc1
-        # after twice maxpooling (downsampling), self.img_size -> self.img_size/4
+        # after twice pooling (downsampling), (h,w) -> (h/4,w/4)
         self.w3 = tf.Variable(tf.truncated_normal(
             [self.img_h//4*self.img_w//4*self.conv2_filter_depth, self.fc_feat_size], stddev=0.1), name='w3')
         self.b3 = tf.Variable(tf.constant(0.1, shape=[self.fc_feat_size]), name='b3')
@@ -92,12 +91,15 @@ class CNN:
         # fc2, output
         self.w4 = tf.Variable(tf.truncated_normal([self.fc_feat_size, 512], stddev=0.1), name='w4')
         self.b4 = tf.Variable(tf.constant(0.1, shape=[512]), name='b4')
-        # (-1, 10)
+        # (-1, 512)
         self.y_pred = tf.add(tf.matmul(self.h3_drop, self.w4), self.b4, name='y_pred')
 
         self.MSE = tf.losses.mean_squared_error(self.y, self.y_pred)
 
-        self.training_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.MSE, name='training_step')
+        self.training_step = tf.train.AdamOptimizer(self.learning_rate)\
+            .minimize(self.MSE + self.alpha*tf.nn.l2_loss(self.w1) + self.alpha*tf.nn.l2_loss(self.w2)
+                      + self.alpha*tf.nn.l2_loss(self.w3),
+                      name='training_step')
 
         # r2 coeff. of correl.
         residuals = tf.reduce_sum(tf.square(tf.subtract(self.y, self.y_pred)))
@@ -110,17 +112,17 @@ class CNN:
         logger.info(f'start training...')
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for i in range(25):
-                for cv_idx, (train_data, train_label, valid_data, valid_label) in enumerate(self.split_train_valid()):
+            for i in range(50):
+                for cv_idx, (train_data, train_label, valid_data, valid_label) in enumerate(self.split_train_valid(n=5)):
                     batch_idx = 0
                     while batch_idx < train_data.shape[0]:
                         x_batch = train_data[batch_idx:batch_idx+batch_size, :, :, :]
                         y_batch = train_label[batch_idx:batch_idx+batch_size, :]
-                        # training_step is a oper not a tensor, therefore no return value
+
                         MSE, *_ = sess.run([self.MSE, self.training_step], feed_dict={
-                            self.x: x_batch,#tf.contrib.image.rotate(x_batch, np.random.randint(0, 360, size=batch_size)).eval(),
+                            self.x: x_batch,
                             self.y: y_batch,
-                            self.keep_prob: 0.5
+                            self.keep_prob: 0.33
                         })
                         coeff_correl = self.r_square.eval(feed_dict={
                             self.x: valid_data,
@@ -131,73 +133,60 @@ class CNN:
                         logger.info(f'cv {cv_idx} batch {batch_idx}, '
                                     f'MSE: {MSE}, '
                                     f'coefficient of correlation : {coeff_correl}')
-                        # self.result = self.result.append({'train_loss': training_loss, 'valid_acc': valid_accuracy},
-                        #                                  ignore_index=True
-                        #                                  )
+                        self.result = self.result.append({'MSE': MSE, 'coeff_correl': coeff_correl},
+                                                         ignore_index=True
+                                                         )
                         batch_idx += batch_size
             self.saver.save(sess, os.path.join(os.getcwd(), 'my_model'))
-
+        self.result.to_csv('result.csv', index=False)
         logger.info(f'done')
 
     def pred_test_img(self):
         with self.restore_session() as sess:
-            img = cv2.imread('s_test2.jpg', flags=cv2.IMREAD_ANYCOLOR)
-            img = img.reshape(-1, 96, 128, 3)
-            res = self.y_pred.eval(session=sess, feed_dict={
-                self.x: img,
-                self.keep_prob: 1.0
-            })
-            res = res.reshape(16, 32)
-            # print(res)
-            # res.fill(255.0)
-            # print(res)
-            # np.savetxt("test_img.csv", res, delimiter=",\t", fmt='%2d')
-            plt.imshow(res)
+            plt.figure(figsize=(15, 8))
+            for i, im in enumerate(['test.jpg', 'test2.jpg', 'test3.jpg']):
+                img = cv2.imread(im, flags=cv2.IMREAD_ANYCOLOR)
+                oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
+                img = oimg.reshape(-1, self.img_h, self.img_w, 3)
+                img = (img-img.mean())/img.std()
+
+                res = self.y_pred.eval(session=sess, feed_dict={
+                    self.x: img,
+                    self.keep_prob: 1.0
+                })
+                res = res.reshape(16, 32)
+
+                plt.subplot(2, 3, 1+i)
+                plt.imshow(cv2.cvtColor(oimg, cv2.COLOR_BGR2RGB))
+                plt.subplot(2, 3, 4+i)
+                plt.imshow(res)
             plt.show()
 
-    def load_data(self, normalize_func: Callable=None, img_extract_patches: int=0) -> (np.array, np.array, np.array):
+    def load_data(self, dataset, random_rotate: int=0) -> (np.array, np.array, np.array):
         train = []
-        with tarfile.open('img.tar') as tar:
-            for i, f in enumerate(tar.getmembers()):
+        with tarfile.open(dataset) as tar:
+            for f in tar.getmembers():
                 bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
                 img = cv2.imdecode(bimg, flags=cv2.IMREAD_ANYCOLOR)
-                if i == -1:
-                    cv2.imshow('example', img)
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()
                 train.append(img)
         train_data = np.array(train)
-        train_label = np.genfromtxt('label_.txt', delimiter=',')
+        train_label = np.genfromtxt('label.txt', delimiter=',')
 
-        # train = pd.read_csv('train.csv.gz', header=0)
-        # # onehot encode the labels
-        # enc = OneHotEncoder(sparse=False)
-        # train_label = enc.fit_transform(train.pop('label').values.reshape(len(train), 1))
-        # # reshape into 42000 images, 28 by 28, 1 channel
-        # train_data = train.values.reshape(-1, 28, 28, 1)
-        # # reshape into 28000 images, 28 by 28, 1 channel
-        # test_data = pd.read_csv('test.csv.gz', header=0).values.reshape(-1, 28, 28, 1)
-
-        if normalize_func is not None:
-            logger.info(f'normalize data...')
-            train_data = normalize_func(train_data)
+        if random_rotate > 0:
+            logger.info(f'rotate img...')
+            rot_data = []
+            for _ in range(random_rotate):
+                for im in train_data:
+                    rim = transform.rotate(im, np.random.randint(0, 360), order=3, preserve_range=True)
+                    rot_data.append(rim)
+                train_label = np.vstack((train_label, train_label))
+            rot_data = np.array(rot_data)
+            train_data = np.vstack((train_data, rot_data))
             logger.info(f'done')
 
-        # if img_extract_patches > 0:
-        #     extract_func = lambda x, p: image.PatchExtractor(patch_size=(24, 24), max_patches=p, random_state=1)\
-        #                                      .transform(x).reshape(-1, 24, 24, 1)
-        #     logger.info(f'cropping 24x24 outta 28x28...')
-        #     q = Queue()
-        #     t = threading.Thread(target=lambda q, x, p: q.put(extract_func(x, p)), args=(q, train_data, img_extract_patches))
-        #     t.daemon = True
-        #     t.start()
-        #     t = threading.Thread(target=lambda q, x, p: q.put(extract_func(x, p)), args=(q, test_data, 1))
-        #     t.daemon = True
-        #     t.start()
-        #     test_data = q.get()
-        #     train_data = q.get()
-        #     train_label = np.tile(train_label, img_extract_patches).reshape(-1, 10)
-        #     logger.info(f'done')
+        logger.info(f'normalize data...')
+        train_data = (train_data-train_data.mean())/train_data.std()
+        logger.info(f'done')
 
         logger.info(f'training data: {train_data.shape}')
         logger.info(f'train label: {train_label.shape}')
@@ -218,81 +207,27 @@ class CNN:
             self.result = pd.read_csv('result.csv', header=0)
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
-        plt.plot(np.arange(0, len(self.result)), self.result['train_loss'])
-        plt.title('training loss')
+        plt.plot(np.arange(0, len(self.result)), self.result['MSE'])
+        plt.title('MSE')
         plt.xlabel('training steps')
 
         plt.subplot(1, 2, 2)
-        plt.plot(np.arange(0, len(self.result)), self.result['valid_acc'])
-        plt.title('validation accuracy')
+        plt.plot(np.arange(0, len(self.result)), self.result['coeff_correl'])
+        plt.title('R^2')
         plt.xlabel('training steps')
-        plt.show()
-
-    def plot_confusion_matrix(self):
-        """
-        plot the confusion matrix for random half of the training set
-        """
-        (train_data, train_label, *_), _ = self.split_train_valid(n=2)
-        logger.info('compute confusion matrix for random half of the trainin set ...')
-        with self.restore_session() as sess:
-            pred = self.y_pred.eval(session=sess, feed_dict={
-                self.x: train_data,
-                self.keep_prob: 1.0
-            })
-        logger.info('done')
-        cnf_mat = confusion_matrix(np.argmax(pred, 1), np.argmax(train_label, 1)).astype(np.int)
-
-        labels = [str(i) for i in range(10)]
-        _, ax = plt.subplots(1)
-        plt.imshow(cnf_mat, cmap='Wistia')
-        ax.set_xticks(np.arange(10))
-        ax.set_yticks(np.arange(10))
-        ax.set_xticklabels(labels)
-        ax.set_yticklabels(labels)
-        for i in range(10):
-            for j in range(10):
-                ax.text(i, j, cnf_mat[j, i], va='center', ha='center')
-        plt.title('confusion matrix')
-        plt.ylabel('truth')
-        plt.xlabel('prediction')
-        plt.show()
-
-    def plot_misclassification(self):
-        """
-        plot the misclassified image for random half of the training set
-        """
-        (train_data, train_label, *_), _ = self.split_train_valid(n=2)
-        logger.info('compute prediction for random half of the trainin set ...')
-        with self.restore_session() as sess:
-            pred = self.y_pred.eval(session=sess, feed_dict={
-                self.x: train_data,
-                self.keep_prob: 1.0
-            })
-        logger.info('done')
-        true_label = np.argmax(train_label, 1)
-        pred_label = np.argmax(pred, 1)
-
-        false_pred = [i for i in range(len(true_label)) if true_label[i] != pred_label[i]]
-
-        plt.figure()
-        # plot first 25
-        for i in range(0, 5):
-            for j in range(0, 5):
-                curr = i*5+j
-                if curr < len(false_pred):
-                    ax = plt.subplot(5, 5, curr+1)
-                    ax.set_xticks([])
-                    ax.set_yticks([])
-                    plt.title(f'{true_label[false_pred[curr]]}/{pred_label[false_pred[curr]]}')
-                    plt.imshow(train_data[false_pred[curr]].reshape(self.img_size, self.img_size), cmap='binary')
-        plt.tight_layout()
         plt.show()
 
     def plot_activation(self):
         """
         plot the activation function for conv and pool
         """
-        img_num = np.random.randint(0, self.train_data.shape[0])
+        def closest_factors(n: int) -> (int, int):
+            x = int(np.sqrt(n))
+            while n % x != 0:
+                x -= 1
+            return (x, n//x) if x > n else (n//x, x)
+
+        img_num = np.random.randint(0, self.train_data.shape[0]-1)
         logger.info('recompute activations for different layers ...')
         with self.restore_session() as sess:
             h1 = self.h1.eval(session=sess, feed_dict={
@@ -316,66 +251,56 @@ class CNN:
                 self.keep_prob: 1.0
             })
         logger.info('done')
+
         plt.figure(figsize=(15, 10))
         # original image
         plt.subplot(2, 3, 1)
-        plt.imshow(self.train_data[img_num].reshape(self.img_size, self.img_size), cmap='binary')
+        plt.title(f'original image (normalized)')
+        plt.imshow(self.train_data[img_num][:, :, [2, 1, 0]])
+
+        c1_h, c1_w = closest_factors(self.conv1_filter_depth)
+        c2_h, c2_w = closest_factors(self.conv2_filter_depth)
+        fc_h, fc_w = closest_factors(self.fc_feat_size)
+
         # conv1
         plt.subplot(2, 3, 2)
         plt.title(f'conv1 {h1.shape}')
-        h1 = np.reshape(h1, (-1, self.img_size, self.img_size, self.conv1_filter_depth_sqrt, self.conv1_filter_depth_sqrt))
-        # TODO: I actually don't know what these magical numbers are
+        h1 = np.reshape(h1, (-1, self.img_h, self.img_w, c1_h, c1_w))
         h1 = np.transpose(h1, (0, 3, 1, 4, 2))
-        h1 = np.reshape(h1, (-1, self.conv1_filter_depth_sqrt*self.img_size, self.conv1_filter_depth_sqrt*self.img_size))
-        plt.imshow(h1[0], cmap='binary')
+        h1 = np.reshape(h1, (-1, c1_h*self.img_h, c1_w*self.img_w))
+        plt.imshow(h1[0])
+
         # pool1
         plt.subplot(2, 3, 3)
         plt.title(f'pool1 {pool1.shape}')
-        pool1 = np.reshape(pool1, (-1, self.img_size//2, self.img_size//2, self.conv1_filter_depth_sqrt, self.conv1_filter_depth_sqrt))
+        pool1 = np.reshape(pool1, (-1, self.img_h//2, self.img_w//2, c1_h, c1_w))
         pool1 = np.transpose(pool1, (0, 3, 1, 4, 2))
-        pool1 = np.reshape(pool1, (-1, self.conv1_filter_depth_sqrt*self.img_size//2, self.conv1_filter_depth_sqrt*self.img_size//2))
-        plt.imshow(pool1[0], cmap='binary')
+        pool1 = np.reshape(pool1, (-1, c1_h*self.img_h//2, c1_w*self.img_w//2))
+        plt.imshow(pool1[0])
+
         # conv2
         plt.subplot(2, 3, 4)
         plt.title(f'conv2 {h2.shape}')
-        h2 = np.reshape(h2, (-1, self.img_size//2, self.img_size//2, self.conv2_filter_depth_sqrt, self.conv2_filter_depth_sqrt))
+        h2 = np.reshape(h2, (-1, self.img_h//2, self.img_w//2, c2_h, c2_w))
         h2 = np.transpose(h2, (0, 3, 1, 4, 2))
-        h2 = np.reshape(h2, (-1, self.conv2_filter_depth_sqrt*self.img_size//2, self.conv2_filter_depth_sqrt*self.img_size//2))
+        h2 = np.reshape(h2, (-1, c2_h*self.img_h//2, c2_w*self.img_w//2))
         plt.imshow(h2[0], cmap='binary')
+
         # pool2
         plt.subplot(2, 3, 5)
         plt.title(f'pool2 {pool2.shape}')
-        pool2 = np.reshape(pool2, (-1, self.img_size//4, self.img_size//4, self.conv2_filter_depth_sqrt, self.conv2_filter_depth_sqrt))
+        pool2 = np.reshape(pool2, (-1, self.img_h//4, self.img_w//4, c2_h, c2_w))
         pool2 = np.transpose(pool2, (0, 3, 1, 4, 2))
-        pool2 = np.reshape(pool2, (-1, self.conv2_filter_depth_sqrt*self.img_size//4, self.conv2_filter_depth_sqrt*self.img_size//4))
+        pool2 = np.reshape(pool2, (-1, c2_h*self.img_h//4, c2_w*self.img_w//4))
         plt.imshow(pool2[0], cmap='binary')
+
         # fc1
         plt.subplot(2, 3, 6)
         plt.title(f'fc1 {h3.shape}')
-        h3 = np.reshape(h3, (-1, self.fc_feat_size_sqrt, self.fc_feat_size_sqrt))
+        h3 = np.reshape(h3, (-1, fc_w, fc_h))
         plt.imshow(h3[0], cmap='binary')
 
         plt.show()
-
-    # def write_submission(self):
-    #     logger.info('compute predicion on test dataset...')
-    #     with self.restore_session() as sess:
-    #         pred = self.y_pred.eval(session=sess, feed_dict={
-    #             self.x: self.test_data,
-    #             self.keep_prob: 1
-    #         })
-    #     logger.info('done')
-    #     logger.info('start writing submission file...')
-    #     pred = np.argmax(pred, 1)
-    #     np.savetxt(
-    #         'submission.csv',
-    #         np.c_[range(1, len(pred)+1), pred],
-    #         delimiter=',',
-    #         header='ImageId,Label',
-    #         comments='',
-    #         fmt='%d'
-    #     )
-    #     logger.info('done')
 
     def restore_session(self) -> tf.Session:
         tf.reset_default_graph()
@@ -414,11 +339,18 @@ class CNN:
 
 
 if __name__ == '__main__':
-    cnn = CNN()
-    cnn.train(batch_size=15)
-    cnn.pred_test_img()
+    kw = {
+        'conv1_depth': 12,
+        'conv1_size': 5,
+        'conv2_depth': 12,
+        'conv2_size': 5,
+        'fc_feat': 512,
+        'lr': 10**-3,
+        'regularization': 0.01
+    }
+
+    cnn = CNN('256x192.tar', **kw)
+    cnn.train(batch_size=20)
+    # cnn.pred_test_img()
     # cnn.plot_training_result()
-    # cnn.plot_confusion_matrix()
-    # cnn.plot_misclassification()
-    # cnn.plot_activation()
-    # cnn.write_submission()
+    cnn.plot_activation()
