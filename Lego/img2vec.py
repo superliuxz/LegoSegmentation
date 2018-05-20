@@ -3,7 +3,7 @@ import csv
 from functools import reduce
 
 
-NUM_BLUE = 16
+NUM_BLUE = 17
 NUM_YELLOW = 9
 BOARD_SIZE = (16, 32)
 
