@@ -99,5 +99,13 @@
   - tried to tweak the hyper params and augmenting data, none really works
   - added batch normalization and l2 regularization, change from max pool to average pool
   - [x] plot the activation of each layer
+  - [x] (test - train.mean())/train.std()
 ---
 **Week 3** (May 20 ~ May 16)
+- things to try (Thanks to George and Fabrizio and Tom):
+  - [ ] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
+    - [ ] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
+  - [ ] build FCN to extend my network. (input --my cnn--> 16x32 --FCN (segmentation)--> output) (https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
+  - [ ] add one/two more conv layer with batch norm and relu, but no pooling
+  - [ ] use synthetic data as input to train the network, use real data to validate / test
+  - [ ] train a network that goes from 32x16 to 256x192 with the input as synthetic data, and use the output as the input to Lego network
