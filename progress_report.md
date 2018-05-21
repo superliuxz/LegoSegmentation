@@ -108,7 +108,7 @@
 **Week 3** (May 20 ~ May 26)
 - things to try (Thanks to George and Fabrizio and Tom):
   - [x] by removing the output layer, and use the output fron fully connected layer directly as prediction.
-    - better results are achieved on the FC layer (output) on training set (visualized by plotting activation)
+    - much better results are achieved on the FC layer (output) on training set (visualized by plotting activation)
     - but validation set performs poorly still. overfitting?
       - [ ] apply dropout back
   - [x] use synthetic data to train the network, use real data to test.
