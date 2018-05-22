@@ -110,7 +110,8 @@
   - [x] by removing the output layer, and use the output fron fully connected layer directly as prediction.
     - much better results are achieved on the FC layer (output) on training set (visualized by plotting activation)
     - but validation set performs poorly still. overfitting?
-      - [ ] apply dropout back
+      - [x] apply dropout back (0.5)
+        - dropout does not seem to reduce the poor performance on validation set
   - [x] use synthetic data to train the network, use real data to test.
     - drastic improvements over the validation set.
   - [ ] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)

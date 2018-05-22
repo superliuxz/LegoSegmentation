@@ -189,7 +189,8 @@ class CNN:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
                 img = oimg.reshape(-1, self.img_h, self.img_w, 3)
-                img = (img-self.train_data.mean())/self.train_data.std()
+                # img = (img-self.train_data.mean())/self.train_data.std()
+                img = img/self.train_data.max()
 
                 res = self.h3.eval(session=sess, feed_dict={
                     self.x: img,
@@ -228,8 +229,8 @@ class CNN:
             logger.info(f'done')
 
         logger.info(f'normalize data...')
-        train_data = (train_data-train_data.mean())/train_data.std()
-        # train_data = train_data/train_data.max()
+        # train_data = (train_data-train_data.mean())/train_data.std()
+        train_data = train_data/train_data.max()
         logger.info(f'done')
 
         logger.info(f'training data: {train_data.shape}')
@@ -406,8 +407,8 @@ if __name__ == '__main__':
         'fc_feat': 512,
         'lr': 10**-3,
         'regularization': 0.01,
-        'input': '256x192.tar',
-        'label': 'label.txt',
+        'input': '5000.256x192.tar.bz2',
+        'label': '5000.label.txt',
         'opt_conv': 0,
         'random_rotate': 0,
     }
@@ -415,12 +416,12 @@ if __name__ == '__main__':
     cnn = CNN(**kw)
 
     train_param = {
-        'keep_prob': 0.5,
-        'CV_batch': 5,
+        'keep_prob': 1,
+        'CV_batch': 10,
         'split_shuffle': True,
-        'batch_size': 20,
-        'iter': 100,
-        'save_model_name': 'realdata_dropout0.5'
+        'batch_size': 50,
+        'iter': 4,
+        'save_model_name': '5000_synth_keepprob1'
     }
 
     cnn.train(**train_param)
