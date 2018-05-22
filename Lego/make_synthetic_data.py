@@ -22,7 +22,9 @@ def gen_board(filename):
     base[0][31] = 200
     ax.add_artist(r)
 
-    for i in range(12):
+    num_bricks = np.random.randint(1, 13)
+
+    for i in range(num_bricks):
         l = np.random.randint(1, 6)
         x = np.random.randint(0, 32-l)-0.5
         y = np.random.randint(0, 16)-0.5
