@@ -114,7 +114,8 @@
         - dropout does not seem to help the poor performance on validation set, in fact it reduces the performance
   - [x] use synthetic data to train the network, use real data to test.
     - drastic improvements over the validation set.
-      - [ ] what happens if blue is assign to 2 and yellow is assigned to 1? the network is still confused about the shadows casted on the validation set. the shadows are predicted to have values but not has high as blue or yellow. i want to eliminate those shadow values
+      - [x] what happens if blue is assign to 2 and yellow is assigned to 1? the network is still confused about the shadows casted on the validation set. the shadows are predicted to have values but not has high as blue or yellow. i want to eliminate those shadow values
+        - BAD. lower the value also lower the tolerance on all the noises. the predictions un-interpretable.
   - [ ] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
     - [ ] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
   - [ ] build FCN to extend my network. (input --my cnn--> 16x32 --FCN (segmentation)--> output) (https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
