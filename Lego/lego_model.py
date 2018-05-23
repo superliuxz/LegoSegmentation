@@ -19,7 +19,7 @@ logger.addHandler(handler)
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
-class CNN:
+class LEGO:
     def __init__(self, **kwargs):
         self.opt_conv = kwargs.get('opt_conv')
 
@@ -137,12 +137,12 @@ class CNN:
         total = tf.reduce_sum(tf.square(tf.subtract(self.y, tf.reduce_mean(self.y))))
         self.r_square = tf.subtract(1.0, tf.div(residuals, total), name='r_square')
 
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(save_relative_paths=True)
 
     def train(self, **kwargs):
         batch_size = kwargs.get('batch_size')
         split_batch = kwargs.get('CV_batch')
-        split_shuffle = kwargs.get('split_shuffle')
+        shuffle = kwargs.get('shuffle')
         keep_prob = kwargs.get('keep_prob')
         iter = kwargs.get('iter')
         model_name = kwargs.get('save_model_name')
@@ -152,7 +152,7 @@ class CNN:
             sess.run(tf.global_variables_initializer())
             for i in range(iter):
                 for cv_idx, (train_data, train_label, valid_data, valid_label) in \
-                        enumerate(self.split_train_valid(n=split_batch, shuffle=split_shuffle)):
+                        enumerate(self.split_train_valid(n=split_batch, shuffle=shuffle)):
                     batch_idx = 0
                     while batch_idx < train_data.shape[0]:
                         x_batch = train_data[batch_idx:batch_idx+batch_size, :, :, :]
@@ -177,11 +177,11 @@ class CNN:
                                                          ignore_index=True
                                                          )
                         batch_idx += batch_size
-            self.saver.save(sess, os.path.join(os.getcwd(), model_name))
-        self.result.to_csv('result.csv', index=False)
+            self.saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
+        self.result.to_csv(f'{model_name}.result.csv', index=False)
         logger.info(f'done')
 
-    def pred_test_img(self, model_name):
+    def pred_three_test_img(self, model_name):
         with self.restore_session(model_name) as sess:
             plt.figure(figsize=(15, 8))
             for i, im in enumerate(['test.jpg', 'test2.jpg', 'test3.jpg']):
@@ -189,8 +189,10 @@ class CNN:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
                 img = oimg.reshape(-1, self.img_h, self.img_w, 3)
-                # img = (img-self.train_data.mean())/self.train_data.std()
-                img = img/self.train_data.max()
+                # img = (img-self.train_data.mean())/(self.train_data.std() + 10**-8)
+                # img = (img - img.mean()) / (img.std() + 10 ** -8)
+                # img = img/self.train_data.max()
+                # img = img / img.max()
 
                 res = self.h3.eval(session=sess, feed_dict={
                     self.x: img,
@@ -229,7 +231,7 @@ class CNN:
             logger.info(f'done')
 
         logger.info(f'normalize data...')
-        # train_data = (train_data-train_data.mean())/train_data.std()
+        # train_data = (train_data-train_data.mean())/(train_data.std() + 10**-8)
         train_data = train_data/train_data.max()
         logger.info(f'done')
 
@@ -242,14 +244,14 @@ class CNN:
         """
         10-fold CV
         """
-        kfold = KFold(n_splits=n, shuffle=shuffle, random_state=1)
+        kfold = KFold(n_splits=n, shuffle=shuffle)
         for train_idx, valid_idx in kfold.split(self.train_data, self.train_label):
             yield self.train_data[train_idx], self.train_label[train_idx], \
                   self.train_data[valid_idx], self.train_label[valid_idx]
 
-    def plot_training_result(self):
+    def plot_training_result(self, model_name):
         if len(self.result) == 0:
-            self.result = pd.read_csv('result.csv', header=0)
+            self.result = pd.read_csv(f'{model_name}.result.csv', header=0)
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
         plt.plot(np.arange(0, len(self.result)), self.result['MSE'])
@@ -356,7 +358,7 @@ class CNN:
         saver = tf.train.import_meta_graph(os.path.join(os.getcwd(), f'{model_name}.meta'))
         session = tf.Session()
         self.reload_tensors(tf.get_default_graph())
-        saver.restore(session, tf.train.latest_checkpoint('./'))
+        saver.restore(session, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
         return session
 
     def reload_tensors(self, graph: tf.Graph):
@@ -413,17 +415,18 @@ if __name__ == '__main__':
         'random_rotate': 0,
     }
 
-    cnn = CNN(**kw)
+    lego = LEGO(**kw)
 
     train_param = {
         'keep_prob': 1,
         'CV_batch': 10,
-        'split_shuffle': True,
+        'shuffle': False,
         'batch_size': 50,
-        'iter': 4,
-        'save_model_name': '5000_synth_keepprob1'
+        'iter': 3,
+        'save_model_name': '5000_synth_keep1'
     }
 
-    cnn.train(**train_param)
-    cnn.plot_activation(train_param.get('save_model_name'))
-    cnn.pred_test_img(train_param.get('save_model_name'))
+    # lego.train(**train_param)
+    # lego.plot_training_result(train_param.get('save_model_name'))
+    # lego.plot_activation(train_param.get('save_model_name'))
+    lego.pred_three_test_img(train_param.get('save_model_name'))

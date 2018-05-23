@@ -106,9 +106,11 @@ venv.bak/
 .idea
 .vscode
 checkpoint
+*.ckpt
 *.data-*
 *.index
 *.meta
 *.png
 *.csv
+*.result.csv
 *.jpg
