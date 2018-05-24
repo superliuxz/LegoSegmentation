@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
 import numpy as np
 
 import csv
 
 
-color = {0: 'royalblue', 1: 'gold'}
+color = {0: 'royalblue', 1: 'crimson'}
 
 
 def pretty_print(board):
@@ -15,19 +16,19 @@ def gen_board(filename):
     base = np.zeros((16, 32))
 
     fig, ax = plt.subplots(figsize=(4, 3))
+    fig.patch.set_facecolor(np.random.rand(4))
 
     plt.imshow(base, cmap='Greys')
 
-    r = plt.Rectangle((30.5, -0.5), 1, 1, fill=True, color=color[0])
-    base[0][31] = 200
+    r = plt.Rectangle((29.5, 0.5), 1, 1, fill=True, color=color[0])
+
     ax.add_artist(r)
+    base[1][30] = 200
 
-    num_bricks = np.random.randint(1, 13)
-
-    for i in range(num_bricks):
-        l = np.random.randint(1, 6)
-        x = np.random.randint(0, 32-l)-0.5
-        y = np.random.randint(0, 16)-0.5
+    for i in range(np.random.randint(1, 11)):
+        l = np.random.randint(1, 9)
+        x = np.random.randint(1, 31-l)-0.5
+        y = np.random.randint(1, 15)-0.5
         c = np.random.randint(0, 2)
         r = plt.Rectangle((x, y), l, 1, fill=True, color=color[c])
         for j in range(l):
@@ -46,9 +47,13 @@ def gen_board(filename):
     ax.set_xticklabels([])
     ax.yaxis.set_ticks_position('none')
     ax.set_yticklabels([])
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(0.3)
 
     plt.tight_layout(pad=0.4)
-    plt.savefig(f'{filename}.jpg', dpi=64)
+
+    plt.savefig(f'{filename}.jpg', dpi=64, facecolor=fig.get_facecolor())
+
     plt.cla()
     plt.close(fig)
 
