@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from skimage import transform
 from sklearn.model_selection import KFold
+from sklearn.metrics import mean_squared_error
 import tensorflow as tf
 
 
@@ -21,13 +22,16 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 class LEGO:
     def __init__(self, **kwargs):
-        self.opt_conv = kwargs.get('opt_conv')
+        self.train_data = None
+        self.train_label = None
 
-        self.train_data, self.train_label \
-            = self.load_data(kwargs.get('input'), kwargs.get('label'), random_rotate=kwargs.get('random_rotate'))
+        self.opt_conv = kwargs.get('opt_conv')
+        self.input = kwargs.get('input')
+        self.label = kwargs.get('label')
+        self.random_rotate = kwargs.get('random_rotate')
         
-        self.img_h = self.train_data.shape[1]
-        self.img_w = self.train_data.shape[2]
+        self.img_h = kwargs.get('img_h')
+        self.img_w = kwargs.get('img_w')
 
         self.conv1_filter_depth = kwargs.get('conv1_depth')
 
@@ -139,7 +143,14 @@ class LEGO:
 
         self.saver = tf.train.Saver(save_relative_paths=True)
 
+    def _load_data_if_not(self, normalize_func):
+        if self.train_data is None and self.train_label is None:
+            self.train_data, self.train_label \
+                = self._load_data(self.input, self.label, random_rotate=self.random_rotate, normalize_func=normalize_func)
+
     def train(self, **kwargs):
+        self._load_data_if_not(kwargs.get('normalize_func'))
+
         batch_size = kwargs.get('batch_size')
         split_batch = kwargs.get('CV_batch')
         shuffle = kwargs.get('shuffle')
@@ -181,7 +192,7 @@ class LEGO:
         self.result.to_csv(f'{model_name}.result.csv', index=False)
         logger.info(f'done')
 
-    def pred_three_test_img(self, model_name):
+    def pred_three_test_img(self, model_name, normalize_func):
         with self.restore_session(model_name) as sess:
             plt.figure(figsize=(15, 8))
             for i, im in enumerate(['test.jpg', 'test2.jpg', 'test3.jpg']):
@@ -189,10 +200,7 @@ class LEGO:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
                 img = oimg.reshape(-1, self.img_h, self.img_w, 3)
-                # img = (img-self.train_data.mean())/(self.train_data.std() + 10**-8)
-                # img = (img - img.mean()) / (img.std() + 10 ** -8)
-                # img = img/self.train_data.max()
-                # img = img / img.max()
+                img = normalize_func(img)
 
                 res = self.h3.eval(session=sess, feed_dict={
                     self.x: img,
@@ -207,7 +215,7 @@ class LEGO:
                 plt.imshow(res, cmap='binary')
             plt.show()
 
-    def load_data(self, dataset, label, random_rotate) -> (np.array, np.array, np.array):
+    def _load_data(self, dataset, label, random_rotate, normalize_func) -> (np.array, np.array, np.array):
         train = []
         with tarfile.open(dataset) as tar:
             for f in tar.getmembers():
@@ -231,8 +239,7 @@ class LEGO:
             logger.info(f'done')
 
         logger.info(f'normalize data...')
-        # train_data = (train_data-train_data.mean())/(train_data.std() + 10**-8)
-        train_data = train_data/train_data.max()
+        train_data = normalize_func(train_data)
         logger.info(f'done')
 
         logger.info(f'training data: {train_data.shape}')
@@ -240,7 +247,7 @@ class LEGO:
 
         return train_data, train_label
 
-    def split_train_valid(self, n: int=10, shuffle: bool=True):
+    def split_train_valid(self, n: int, shuffle: bool):
         """
         10-fold CV
         """
@@ -264,7 +271,7 @@ class LEGO:
         plt.xlabel('training steps')
         plt.show()
 
-    def plot_activation(self, model_name):
+    def plot_activation(self, model_name, normalize_func):
         """
         plot the activation function for conv and pool
         """
@@ -273,6 +280,9 @@ class LEGO:
             while n % x != 0:
                 x -= 1
             return (x, n//x) if x > n else (n//x, x)
+
+        self._load_data_if_not(normalize_func)
+
         img_num = np.random.randint(0, self.train_data.shape[0]-1)
         logger.info('recompute activations for different layers ...')
         with self.restore_session(model_name) as sess:
@@ -353,6 +363,55 @@ class LEGO:
 
         plt.show()
 
+    def plot_vectorized_prediction_mse_on_training(self, model_name: str, normalize_func):
+        self._load_data_if_not(normalize_func)
+
+        with self.restore_session(model_name) as sess:
+            batch_idx = 0
+            res = []
+            while batch_idx < self.train_data.shape[0]:
+                res.append(self.h3.eval(session=sess, feed_dict={
+                    self.x: self.train_data[batch_idx:batch_idx+100],
+                    self.keep_prob: 1.0,
+                    self.is_training: False
+                }))
+                batch_idx += 100
+        res = np.array(res).reshape(-1, 512)
+        self._plot_new_mse(res, self.train_label)
+
+    def plot_vectorized_prediction_mse_on_testing(self, model_name: str, normalize_func):
+        train, label = self._load_data('256x192.tar.bz2', 'label.txt', 0, normalize_func)
+
+        with self.restore_session(model_name) as sess:
+            res = self.h3.eval(session=sess, feed_dict={
+                self.x: train,
+                self.keep_prob: 1.0,
+                self.is_training: False
+            })
+        self._plot_new_mse(res, label)
+
+    def _plot_new_mse(self, prediction, ground_truth):
+        MSEs = []
+        x, y = np.arange(25, 75, step=1), np.arange(125, 175, step=1)
+        for lo in x:
+            for hi in y:
+                rep = np.copy(prediction)
+                rep[np.where(rep <= lo)] = 0
+                rep[np.where(np.logical_and(lo < rep, rep <= hi))] = 100
+                rep[np.where(rep > hi)] = 200
+                MSEs.append(mean_squared_error(ground_truth, rep))
+        MSEs = np.array(MSEs)
+        MSEs = MSEs.reshape(50, 50)  # y, x
+        X, Y = np.meshgrid(x, y)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('x<=lower -> x=0; lower<x<=upper -> x=100; upper<x -> x=200')
+        ax.set_xlabel('lower threshold')
+        ax.set_ylabel('higher threshold')
+        cnt = plt.contour(X, Y, MSEs)
+        plt.clabel(cnt, inline=1, fontsize=10)
+        plt.show()
+
     def restore_session(self, model_name) -> tf.Session:
         tf.reset_default_graph()
         saver = tf.train.import_meta_graph(os.path.join(os.getcwd(), f'{model_name}.meta'))
@@ -402,6 +461,8 @@ class LEGO:
 
 if __name__ == '__main__':
     kw = {
+        'img_w': 256,
+        'img_h': 192,
         'conv1_depth': 16,
         'conv1_size': 3,
         'conv2_depth': 32,
@@ -423,10 +484,15 @@ if __name__ == '__main__':
         'shuffle': False,
         'batch_size': 50,
         'iter': 3,
-        'save_model_name': '5000_synth_keep1'
+        'save_model_name': '5000_synth_keep1',
+        'normalize_func': lambda x: x / x.max()
     }
 
     # lego.train(**train_param)
     # lego.plot_training_result(train_param.get('save_model_name'))
-    # lego.plot_activation(train_param.get('save_model_name'))
-    lego.pred_three_test_img(train_param.get('save_model_name'))
+    # lego.plot_activation(train_param.get('save_model_name'), train_param.get('normalize_func'))
+    # lego.pred_three_test_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
+    # lego.plot_vectorized_prediction_mse_on_training(train_param.get('save_model_name'),
+    #                                                 train_param.get('normalize_func'))
+    lego.plot_vectorized_prediction_mse_on_testing(train_param.get('save_model_name'),
+                                                   train_param.get('normalize_func'))
