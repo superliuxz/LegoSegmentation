@@ -104,6 +104,9 @@
     - **better**. this agrees with what I learned online, in regression problem dropout mignt not be a good idea.
   - [x] plot the activation of each layer
   - [x] (test - train.mean())/train.std()
+    - in the case where i use synthetic data for traning and real data for testing, this won't make sense (and confirmed the predictions are bad too) becoz the color range, lightning condition of the real data are completely different from the synthetic
+      - in the same case, i also tried x-x.mean, where the R2 does not even converge
+      - best result is achieved by training/training.max for training, and test/test.max for testing
 ---
 **Week 3** (May 20 ~ May 26)
 - things to try (Thanks to George and Fabrizio and Tom):
@@ -116,8 +119,10 @@
     - drastic improvements over the validation set.
       - [x] what happens if blue is assign to 2 and yellow is assigned to 1? the network is still confused about the shadows casted on the validation set. the shadows are predicted to have values but not has high as blue or yellow. i want to eliminate those shadow values
         - BAD. lower the value also lower the tolerance on all the noises. the predictions un-interpretable.
-  - [ ] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
-    - [ ] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
+  - [x] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
+    - [x] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
+      - this new MSE is not differentiable therefore cannot be used as a loss func. however, it can be used to obtain best predictions under different lightning conditions
+      - [x] plot the conout of new MSE.
   - [ ] build FCN to extend my network. (input --my cnn--> 16x32 --FCN (segmentation)--> output) (https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
   - [x] add one/two more conv layer with batch norm and relu, but no pooling (https://www.mathworks.com/help/nnet/examples/train-a-convolutional-neural-network-for-regression.html)
     - not really effective
