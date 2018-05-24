@@ -192,28 +192,56 @@ class LEGO:
         self.result.to_csv(f'{model_name}.result.csv', index=False)
         logger.info(f'done')
 
-    def pred_three_test_img(self, model_name, normalize_func):
-        with self.restore_session(model_name) as sess:
-            plt.figure(figsize=(15, 8))
-            for i, im in enumerate(['test.jpg', 'test2.jpg', 'test3.jpg']):
-                img = cv2.imread(im, flags=cv2.IMREAD_ANYCOLOR)
+    def pred_three_random_img(self, model_name: str, norm_func):
+        data = []
+        with tarfile.open('256x192.tar.bz2') as tar:
+            for f in tar.getmembers():
+                bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
+                img = cv2.imdecode(bimg, flags=cv2.IMREAD_ANYCOLOR)
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
-                img = oimg.reshape(-1, self.img_h, self.img_w, 3)
-                img = normalize_func(img)
+                data.append(img)
+        data = np.array(data)
+        data = norm_func(data)
+        plt.figure(figsize=(15, 8))
 
+        for i in range(3):
+            idx = np.random.randint(0, data.shape[0])
+            img = data[idx: idx+1]
+            oimg = img.reshape(self.img_h, self.img_w, 3)
+            with self.restore_session(model_name) as sess:
                 res = self.h3.eval(session=sess, feed_dict={
                     self.x: img,
                     self.keep_prob: 1.0,
                     self.is_training: False
                 })
-                res = np.reshape(res, (16, 32))
+            res = np.reshape(res, (16, 32))
+            plt.subplot(2, 3, 1 + i)
+            plt.imshow(oimg)
+            plt.subplot(2, 3, 4 + i)
+            plt.imshow(res, cmap='binary')
+        plt.show()
 
-                plt.subplot(2, 3, 1+i)
-                plt.imshow(oimg)
-                plt.subplot(2, 3, 4+i)
-                plt.imshow(res, cmap='binary')
-            plt.show()
+    def pred_three_test_img(self, model_name, normalize_func):
+        plt.figure(figsize=(15, 8))
+        for i, im in enumerate(['test.jpg', 'test2.jpg', 'test3.jpg']):
+            img = cv2.imread(im, flags=cv2.IMREAD_ANYCOLOR)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            oimg = cv2.resize(src=img, dsize=(self.img_w, self.img_h), interpolation=cv2.INTER_LANCZOS4)
+            img = oimg.reshape(-1, self.img_h, self.img_w, 3)
+            img = normalize_func(img)
+            with self.restore_session(model_name) as sess:
+                res = self.h3.eval(session=sess, feed_dict={
+                    self.x: img,
+                    self.keep_prob: 1.0,
+                    self.is_training: False
+                })
+            res = np.reshape(res, (16, 32))
+
+            plt.subplot(2, 3, 1+i)
+            plt.imshow(oimg)
+            plt.subplot(2, 3, 4+i)
+            plt.imshow(res, cmap='binary')
+        plt.show()
 
     def _load_data(self, dataset, label, random_rotate, normalize_func) -> (np.array, np.array, np.array):
         train = []
@@ -492,7 +520,8 @@ if __name__ == '__main__':
     # lego.plot_training_result(train_param.get('save_model_name'))
     # lego.plot_activation(train_param.get('save_model_name'), train_param.get('normalize_func'))
     # lego.pred_three_test_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
+    lego.pred_three_random_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
     # lego.plot_vectorized_prediction_mse_on_training(train_param.get('save_model_name'),
     #                                                 train_param.get('normalize_func'))
-    lego.plot_vectorized_prediction_mse_on_testing(train_param.get('save_model_name'),
-                                                   train_param.get('normalize_func'))
+    # lego.plot_vectorized_prediction_mse_on_testing(train_param.get('save_model_name'),
+    #                                                train_param.get('normalize_func'))
