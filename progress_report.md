@@ -119,10 +119,15 @@
     - drastic improvements over the validation set.
       - [x] what happens if blue is assign to 2 and yellow is assigned to 1? the network is still confused about the shadows casted on the validation set. the shadows are predicted to have values but not has high as blue or yellow. i want to eliminate those shadow values
         - BAD. lower the value also lower the tolerance on all the noises. the predictions un-interpretable.
+      - the prediction on test set (real) data contains a lot of false negatives around the edge of the board, which is introduced by the dark background.
+        - leave the board edge empty
+  - [ ] George ma man hook me up with more red bricks. Regenarete synthetic training data using blue-red, and regen test data using blue-red bricks
+    - [ ] leave the very edge row and col empty on the board, aka 32x16 -> 30x14
   - [x] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
     - [x] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
       - this new MSE is not differentiable therefore cannot be used as a loss func. however, it can be used to obtain best predictions under different lightning conditions
       - [x] plot the conout of new MSE.
+      - [ ] apply threshhold on the the output see if the result improves
   - [ ] build FCN to extend my network. (input --my cnn--> 16x32 --FCN (segmentation)--> output) (https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
   - [x] add one/two more conv layer with batch norm and relu, but no pooling (https://www.mathworks.com/help/nnet/examples/train-a-convolutional-neural-network-for-regression.html)
     - not really effective
