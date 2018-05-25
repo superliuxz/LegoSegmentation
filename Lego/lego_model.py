@@ -173,7 +173,7 @@ class LEGO:
                             self.x: x_batch,
                             self.y: y_batch,
                             self.keep_prob: keep_prob,
-                            self.is_training: False
+                            self.is_training: True
                         })
                         coeff_correl = self.r_square.eval(feed_dict={
                             self.x: valid_data,
@@ -498,8 +498,8 @@ if __name__ == '__main__':
         'fc_feat': 512,
         'lr': 10**-3,
         'regularization': 0.01,
-        'input': '5000.256x192.tar.bz2',
-        'label': '5000.label.txt',
+        'input': '5k.rb.256x192.tar.xz',
+        'label': '5k.rb.256x192.label.txt',
         'opt_conv': 0,
         'random_rotate': 0,
     }
@@ -509,18 +509,18 @@ if __name__ == '__main__':
     train_param = {
         'keep_prob': 1,
         'CV_batch': 10,
-        'shuffle': False,
+        'shuffle': True,
         'batch_size': 50,
         'iter': 3,
-        'save_model_name': '5000_synth_keep1',
+        'save_model_name': '5k_rb',
         'normalize_func': lambda x: x / x.max()
     }
 
-    # lego.train(**train_param)
-    # lego.plot_training_result(train_param.get('save_model_name'))
-    # lego.plot_activation(train_param.get('save_model_name'), train_param.get('normalize_func'))
+    lego.train(**train_param)
+    lego.plot_training_result(train_param.get('save_model_name'))
+    lego.plot_activation(train_param.get('save_model_name'), train_param.get('normalize_func'))
     # lego.pred_three_test_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
-    lego.pred_three_random_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
+    # lego.pred_three_random_img(train_param.get('save_model_name'), train_param.get('normalize_func'))
     # lego.plot_vectorized_prediction_mse_on_training(train_param.get('save_model_name'),
     #                                                 train_param.get('normalize_func'))
     # lego.plot_vectorized_prediction_mse_on_testing(train_param.get('save_model_name'),
