@@ -132,3 +132,5 @@
   - [x] add one/two more conv layer with batch norm and relu, but no pooling (https://www.mathworks.com/help/nnet/examples/train-a-convolutional-neural-network-for-regression.html)
     - not really effective
   - [ ] train a network that goes from 32x16 to 256x192 with the input as synthetic data, and use the output as the input to Lego network
+  - [x] forget about different colors. what if red is the only color? Does the model do a better job on the simplified problem?
+    - interestingly, with full red blocks, the loss function does not converge, and R2 dose not converge neither
