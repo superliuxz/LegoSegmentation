@@ -137,3 +137,6 @@
     - interestingly, with full red blocks, R2 does not converge but the loss function does.
     - by plotting some of the prediction against the tranining set, the pure red model does a fairly good job
     - however, pure red model performs poorly on the testing images. it is susceptible to shadowing / various lighting conditions
+---
+**Week 4** (May 27 ~ June 2)
+- fell sick. couldn't get much done last week. **RECOVER FAST.**
