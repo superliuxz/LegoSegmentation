@@ -122,7 +122,8 @@
       - the prediction on test set (real) data contains a lot of false negatives around the edge of the board, which is introduced by the dark background.
         - leave the board edge empty
   - [ ] George ma man hook me up with more red bricks. Regenarete synthetic training data using blue-red, and regen test data using blue-red bricks
-    - [ ] leave the very edge row and col empty on the board, aka 32x16 -> 30x14
+    - [x] leave the very edge row and col empty on the board, aka 32x16 -> 30x14
+    - WIP. For now only three testing red-blue image. would like to have ~100 ish
   - [x] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
     - [x] use the vectorized output to re-compute the new MSE. (16x32, lego-grid by lego-grid MSE)
       - this new MSE is not differentiable therefore cannot be used as a loss func. however, it can be used to obtain best predictions under different lightning conditions
@@ -140,3 +141,4 @@
 ---
 **Week 4** (May 27 ~ June 2)
 - fell sick. couldn't get much done last week. **RECOVER FAST.**
+- trying add synthetic shadows on the images, see if result improves
