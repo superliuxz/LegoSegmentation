@@ -142,3 +142,4 @@
 **Week 4** (May 27 ~ June 2)
 - fell sick. couldn't get much done last week. **RECOVER FAST.**
 - trying add synthetic shadows on the images, see if result improves
+  - results are bad. uninterpretable.
