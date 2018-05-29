@@ -141,5 +141,23 @@
 ---
 **Week 4** (May 27 ~ June 2)
 - fell sick. couldn't get much done last week. **RECOVER FAST.**
+  - [x] fully recovered.
 - trying add synthetic shadows on the images, see if result improves
   - results are bad. uninterpretable.
+- Fabrizio proposed to use binary cross entropy with logit
+  - instead encode the board as 32x16 with blue=200 and red=100, encode the board into two channels with 32x16 in size, occupied by blue bricks and red bricks respectively.
+  - not quite working. I dont understand the choice of sigmoid loss. need to ask Fabrizio more questions tomorrow
+- learned a lot by talking to Fabrizio and Tom.
+  - the way i split training/testing/validation data is incorrect.
+    - [ ] fix it
+  - the two channel method is not quite working.
+    - [ ] go back to my old model with one channel. swap the loss function from l2 to sigmoid. does the model still perform?
+  - maybe use unity (game engine) to generate synthetic training data?
+- met George today. He mentioned three things:
+  - if i ever get bored writing tensorflow code, try build a small platform on android
+    - maybe in the future hook it up with some music generation scheme
+  - this lego problem itself can have three subproblems: color, shape and location.
+    - are three subproblems indepdent of each other?
+      - i.e., if the full network is trained on red-blue, then we add a new layer to train the network to recongnize green-yellow, how hard/easy it is?
+        - does it perform better/worse than traning a model from scratch with green-yellow?
+  - Google "Day Dream" paper?
