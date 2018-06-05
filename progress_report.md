@@ -121,7 +121,7 @@
         - BAD. lower the value also lower the tolerance on all the noises. the predictions un-interpretable.
       - the prediction on test set (real) data contains a lot of false negatives around the edge of the board, which is introduced by the dark background.
         - leave the board edge empty
-  - [ ] George ma man hook me up with more red bricks. Regenarete synthetic training data using blue-red, and regen test data using blue-red bricks
+  - [x] George ma man hook me up with more red bricks. Regenarete synthetic training data using blue-red, and regen test data using blue-red bricks
     - [x] leave the very edge row and col empty on the board, aka 32x16 -> 30x14
     - WIP. For now only three testing red-blue image. would like to have ~100 ish
   - [x] vectorize the output (instead of being a continuous heat map, binarize it into 0s and 100s for yellow and 200s for blue)
@@ -135,9 +135,8 @@
   - [ ] train a network that goes from 32x16 to 256x192 with the input as synthetic data, and use the output as the input to Lego network
   - [x] what if red is the only color? Does the model do a better job on the simplified problem?
     - setting the board to 0 and the red to 1
-    - interestingly, with full red blocks, R2 does not converge but the loss function does.
     - by plotting some of the prediction against the tranining set, the pure red model does a fairly good job
-    - however, pure red model performs poorly on the testing images. it is susceptible to shadowing / various lighting conditions
+    - but similarly to the red-blue and blue-yellow model, on real image (testing set), the model does not distinguish the shadows to well
 ---
 **Week 4** (May 27 ~ June 2)
 - fell sick. couldn't get much done last week. **RECOVER FAST.**
@@ -145,14 +144,19 @@
 - trying add synthetic shadows on the images, see if result improves
   - results are bad. uninterpretable.
 - Fabrizio proposed to use binary cross entropy with logit
-  - instead encode the board as 32x16 with blue=200 and red=100, encode the board into two channels with 32x16 in size, occupied by blue bricks and red bricks respectively.
-  - not quite working. I dont understand the choice of sigmoid loss. need to ask Fabrizio more questions tomorrow
+  - instead of encoding the board as 32x16 with blue=200 and red=100, encode the board into two channels with 32x16 in size, occupied by blue bricks and red bricks respectively.
+  - [x] figured out why the model was not working. need to re-test. ~~not quite working. I dont understand the choice of sigmoid loss. need to ask Fabrizio more questions tomorrow~~
 - learned a lot by talking to Fabrizio and Tom.
-  - the way i split training/testing/validation data is incorrect.
-    - [ ] fix it
-  - the two channel method is not quite working.
+  - some misunderstanding. it turned out that i did not split the data "wrong". The model was not working becoz it requires on l2 regularization and `training=False` for batch norm.
+    - [ ] why?
+  - re-test the two channel method. ~~the two channel method is not quite working~~.
     - [ ] go back to my old model with one channel. swap the loss function from l2 to sigmoid. does the model still perform?
   - maybe use unity (game engine) to generate synthetic training data?
+    - too time comsuming to pick up a new framework
+- add synthetic shawdows to synthetic data.
+  - [x] tested. Does not seem to make a big difference
+- add random colors to backgournd of synthetic data.
+  - [x] tested. Performs worse on the testing data.
 - met George today. He mentioned three things:
   - if i ever get bored writing tensorflow code, try build a small platform on android
     - maybe in the future hook it up with some music generation scheme
@@ -161,3 +165,6 @@
       - i.e., if the full network is trained on red-blue, then we add a new layer to train the network to recongnize green-yellow, how hard/easy it is?
         - does it perform better/worse than traning a model from scratch with green-yellow?
   - Google "Day Dream" paper?
+---
+**Week 4** (June 3 ~ June 9)
+- things mentioned in the previous week
