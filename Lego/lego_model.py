@@ -20,6 +20,9 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 tf.logging.set_verbosity(tf.logging.INFO)
 
+np.random.seed(42)
+tf.set_random_seed(42)
+
 
 class LEGO:
     def __init__(self, **kwargs):
@@ -60,9 +63,8 @@ class LEGO:
         self.b1 = tf.Variable(tf.constant(0.1, shape=[self.conv1_filter_depth]), name='b1')
         # (-1, self.img_h, self.img_w, self.conv1_filter_depth)
         self.h1 = tf.nn.relu(
-            tf.layers.batch_normalization(
                 tf.nn.conv2d(self.x, self.w1, strides=[1, 1, 1, 1], padding='SAME') + self.b1,
-                training=self.is_training), name='h1')
+                name='h1')
         self.print_h1 = tf.Print(self.h1, [self.h1], 'h1: ')
 
         # 1st pooling layer
@@ -75,9 +77,8 @@ class LEGO:
         self.b2 = tf.Variable(tf.constant(0.1, shape=[self.conv2_filter_depth]), name='b2')
         # (-1, self.img_h/2, self.img_w/2, self.conv2_filter_depth)
         self.h2 = tf.nn.relu(
-            tf.layers.batch_normalization(
                 tf.nn.conv2d(self.pool1, self.w2, strides=[1, 1, 1, 1], padding='SAME') + self.b2,
-                training=self.is_training), name='h2')
+                name='h2')
         self.print_h2 = tf.Print(self.h2, [self.h2], 'h2: ')
 
         # 2nd pooling layer
@@ -95,8 +96,7 @@ class LEGO:
         self.flat_pool = tf.reshape(
             final_pool, [-1, self.img_h//4*self.img_w//4*final_conv_d], name='flat_pool')
         # (-1, self.fc_feat_size)
-        self.h3 = tf.nn.relu(tf.matmul(self.flat_pool, self.w3) + self.b3, name='h3')
-        self.h3_drop = tf.layers.dropout(self.h3, 1.0 - self.keep_prob, name='h3_drop', training=self.is_training)
+        self.h3 = tf.add(tf.matmul(self.flat_pool, self.w3), self.b3, name='h3')
 
         # # dense layer for first channel
         # self.w_fc1 = tf.Variable(tf.truncated_normal(
@@ -126,17 +126,23 @@ class LEGO:
         # # (-1, 512)
         # self.y_pred = tf.add(tf.matmul(self.h3_drop, self.w4), self.b4, name='y_pred')
 
-        self.loss = tf.losses.mean_squared_error(self.y, self.h3_drop)
+        # self.loss = tf.losses.mean_squared_error(self.y, self.h3)
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=self.y, logits=self.h3))
 
         self.training_step = tf.train.AdamOptimizer(self.learning_rate) \
             .minimize(self.loss + self.alpha * tf.nn.l2_loss(self.w1) + self.alpha * tf.nn.l2_loss(self.w2)
                       + self.alpha * tf.nn.l2_loss(self.w3),
                       name='training_step')
 
-        # r2 coeff. of correl.
-        residuals = tf.reduce_sum(tf.square(tf.subtract(self.y, self.h3_drop)))
-        total = tf.reduce_sum(tf.square(tf.subtract(self.y, tf.reduce_mean(self.y))))
-        self.accuracy = tf.subtract(1.0, tf.div(residuals, total), name='accuracy')
+        # # r2 coeff. of correl.
+        # residuals = tf.reduce_sum(tf.square(tf.subtract(self.y, self.h3)))
+        # total = tf.reduce_sum(tf.square(tf.subtract(self.y, tf.reduce_mean(self.y))))
+        # self.accuracy = tf.subtract(1.0, tf.div(residuals, total), name='accuracy')
+        self.accuracy = tf.reduce_mean(
+            tf.cast(
+                tf.equal(
+                    tf.greater(tf.sigmoid(self.h3), 0.5), tf.equal(self.y, 1.0)
+                ), tf.float32), name='accuracy')
 
         # self.loss = tf.reduce_mean(
         #     tf.nn.sigmoid_cross_entropy_with_logits(labels=self.y, logits=self.h_concat),
@@ -163,6 +169,7 @@ class LEGO:
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             for ep in range(epoch):
+                break_flag = False
                 for cv, (X_train, y_train, X_valid, y_valid) in enumerate(self.gen_batches(n=batch)):
                     batch_idx = 0
                     while batch_idx < X_train.shape[0]:
@@ -191,6 +198,13 @@ class LEGO:
                         self.result = self.result.append({'train_loss': train_loss, 'test_loss': test_loss},
                                                          ignore_index=True)
                         batch_idx += batch_size
+                        if train_loss < 10**-5:
+                            break_flag = True
+                            break
+                    if break_flag:
+                        break
+                if break_flag:
+                    break
             self.saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
         self.result.to_csv(f'{model_name}.result.csv', index=False)
         logger.info(f'done')
@@ -307,6 +321,7 @@ class LEGO:
                     self.is_training: False
                 })
             res = np.reshape(res, (16, 32))
+            res = np.round(1 / (1 + np.exp(-res)))
 
             plt.subplot(2, len(images), 1+i)
             plt.imshow(oimg)
@@ -412,6 +427,7 @@ class LEGO:
         plt.subplot(2, 3, 6)
         plt.title(f'fc1 {h3.shape}')
         h3 = np.reshape(h3, (-1, fc_w, fc_h))
+        h3 = np.round(1/(1+np.exp(-h3)))
         plt.imshow(h3[0], cmap='binary')
 
         plt.show()
@@ -537,9 +553,9 @@ if __name__ == '__main__':
         'conv2_size': 3,
         'fc_feat': 512,
         'lr': 10**-3,
-        'regularization': 0.01,
-        'input': '5k.rb.256x192.tar.xz',
-        'label': '5k.rb.256x192.label.txt',
+        'regularization': 0.00,
+        'input': '5k.red.one_chann.256x192.tar.xz',
+        'label': '5k.red.one_chann.256x192.label.txt',
         'random_rotate': 0,
     }
 
@@ -549,19 +565,19 @@ if __name__ == '__main__':
         'keep_prob': 1,
         'batches': 10,
         'batch_size': 50,
-        'epoch': 4,
-        'model_name': '5k_rb',
+        'epoch': 2,
+        'model_name': '5k_red_one_chann',
         'normalize_func': lambda x: x / x.max()
     }
 
-    # lego.train(**train_param)
+    lego.train(**train_param)
 
     lego.plot_training_result(model_name=train_param.get('model_name'))
 
     lego.plot_activation(model_name=train_param.get('model_name'),
                          normalize_func=train_param.get('normalize_func'))
 
-    lego.pred_test_img(images=['rb.test.jpg', 'rb.test2.jpg', 'rb.test3.jpg'],
+    lego.pred_test_img(images=['r.test.jpg', 'r.test2.jpg', 'r.test3.jpg'],
                        model_name=train_param.get('model_name'),
                        normalize_func=train_param.get('normalize_func'))
 

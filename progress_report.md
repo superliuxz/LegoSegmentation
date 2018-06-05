@@ -148,9 +148,14 @@
   - [x] figured out why the model was not working. need to re-test. ~~not quite working. I dont understand the choice of sigmoid loss. need to ask Fabrizio more questions tomorrow~~
 - learned a lot by talking to Fabrizio and Tom.
   - some misunderstanding. it turned out that i did not split the data "wrong". The model was not working becoz it requires on l2 regularization and `training=False` for batch norm.
-    - [ ] why?
+    - [x] got it fixed. ~~why?~~
   - re-test the two channel method. ~~the two channel method is not quite working~~.
-    - [ ] go back to my old model with one channel. swap the loss function from l2 to sigmoid. does the model still perform?
+    - [x] go back to my old model with one channel. swap the loss function from l2 to sigmoid. does the model still perform?
+      - WORKING!!!. **lession learned**: the last layer of the nn output does not require activation becoz sigmoid_crx_entropy will apply sigmoid function
+      - **TODO**: the prediction on testing data is still kinda noisy.
+    - [x] now, two channels, red and blue
+      - working.
+      - but the prediction on test data is still noisy.
   - maybe use unity (game engine) to generate synthetic training data?
     - too time comsuming to pick up a new framework
 - add synthetic shawdows to synthetic data.
