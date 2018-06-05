@@ -40,8 +40,9 @@ class LEGO:
         self.conv2_filter_depth = kwargs.get('conv2_depth')
 
         self.fc_feat_size = kwargs.get('fc_feat')
-
+        self.alpha = kwargs.get('regularization')
         self.learning_rate = kwargs.get('lr')
+
         self.conv1_size = kwargs.get('conv1_size')
         self.conv2_size = kwargs.get('conv2_size')
 
@@ -51,6 +52,7 @@ class LEGO:
 
         self.x = tf.placeholder(tf.float32, [None, self.img_h, self.img_w, 3], name='x')
         self.y = tf.placeholder(tf.float32, [None, 512], name='y')
+        self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
         self.is_training = tf.placeholder(tf.bool, name='is_training')
 
         # 1st conv layer
@@ -94,6 +96,7 @@ class LEGO:
             final_pool, [-1, self.img_h//4*self.img_w//4*final_conv_d], name='flat_pool')
         # (-1, self.fc_feat_size)
         self.h3 = tf.nn.relu(tf.matmul(self.flat_pool, self.w3) + self.b3, name='h3')
+        self.h3_drop = tf.layers.dropout(self.h3, 1.0 - self.keep_prob, name='h3_drop', training=self.is_training)
 
         # # dense layer for first channel
         # self.w_fc1 = tf.Variable(tf.truncated_normal(
@@ -123,21 +126,26 @@ class LEGO:
         # # (-1, 512)
         # self.y_pred = tf.add(tf.matmul(self.h3_drop, self.w4), self.b4, name='y_pred')
 
-        self.loss = tf.losses.mean_squared_error(self.y, self.h3)
+        self.loss = tf.losses.mean_squared_error(self.y, self.h3_drop)
 
-        self.training_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, name='training_step')
+        self.training_step = tf.train.AdamOptimizer(self.learning_rate) \
+            .minimize(self.loss + self.alpha * tf.nn.l2_loss(self.w1) + self.alpha * tf.nn.l2_loss(self.w2)
+                      + self.alpha * tf.nn.l2_loss(self.w3),
+                      name='training_step')
 
         # r2 coeff. of correl.
-        residuals = tf.reduce_sum(tf.square(tf.subtract(self.y, self.h3)))
+        residuals = tf.reduce_sum(tf.square(tf.subtract(self.y, self.h3_drop)))
         total = tf.reduce_sum(tf.square(tf.subtract(self.y, tf.reduce_mean(self.y))))
         self.accuracy = tf.subtract(1.0, tf.div(residuals, total), name='accuracy')
 
-        # self.cross_entropy_loss = tf.reduce_mean(
+        # self.loss = tf.reduce_mean(
         #     tf.nn.sigmoid_cross_entropy_with_logits(labels=self.y, logits=self.h_concat),
-        #     name='cross_entropy_loss'
+        #     name='loss'
         # )
         # self.training_step = tf.train.AdamOptimizer(self.learning_rate) \
-        #     .minimize(self.cross_entropy_loss, name='training_step')
+        #     .minimize(self.loss + self.alpha * tf.nn.l2_loss(self.w1) + self.alpha * tf.nn.l2_loss(self.w2)
+        #               + self.alpha * tf.nn.l2_loss(self.w3),
+        #               name='training_step')
         # self.correct_pred = tf.equal(tf.argmax(self.h_concat, 1), tf.argmax(self.y, 1), name='correct_pred')
         # self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32), name='accuracy')
 
@@ -161,16 +169,19 @@ class LEGO:
                         train_loss, *_ = sess.run([self.loss, self.training_step], feed_dict={
                             self.x: X_train[batch_idx:batch_idx+batch_size, :, :, :],
                             self.y: y_train[batch_idx:batch_idx+batch_size, :],
+                            self.keep_prob: keep_prob,
                             self.is_training: False
                         })
                         train_accuracy = self.accuracy.eval(feed_dict={
                             self.x: X_valid,
                             self.y: y_valid,
+                            self.keep_prob: 1,
                             self.is_training: False
                         })
                         test_loss = self.loss.eval(feed_dict={
                             self.x: self.test_data,
                             self.y: self.test_label,
+                            self.keep_prob: 1,
                             self.is_training: False
                         })
                         logger.info(f'epoch {ep} cv {cv} batch {batch_idx}, '
@@ -180,8 +191,6 @@ class LEGO:
                         self.result = self.result.append({'train_loss': train_loss, 'test_loss': test_loss},
                                                          ignore_index=True)
                         batch_idx += batch_size
-                if train_loss < 10:
-                    break
             self.saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
         self.result.to_csv(f'{model_name}.result.csv', index=False)
         logger.info(f'done')
@@ -295,6 +304,7 @@ class LEGO:
             with self.restore_session(model_name) as sess:
                 res = self.h3.eval(session=sess, feed_dict={
                     self.x: img,
+                    self.is_training: False
                 })
             res = np.reshape(res, (16, 32))
 
@@ -336,18 +346,23 @@ class LEGO:
         with self.restore_session(model_name) as sess:
             h1 = self.h1.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num+1],
+                self.is_training: False
             })
             pool1 = self.pool1.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num+1],
+                self.is_training: False
             })
             h2 = self.h2.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num + 1],
+                self.is_training: False
             })
             pool2 = self.pool2.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num + 1],
+                self.is_training: False
             })
             h3 = self.h3.eval(session=sess, feed_dict={
                 self.x: self.train_data[img_num: img_num + 1],
+                self.is_training: False
             })
         logger.info('done')
 
@@ -418,6 +433,7 @@ class LEGO:
             while batch_idx < self.train_data.shape[0]:
                 res.append(self.h3.eval(session=sess, feed_dict={
                     self.x: self.train_data[batch_idx:batch_idx+100],
+                    self.is_training: False
                 }))
                 batch_idx += 100
         res = np.array(res).reshape(-1, 512)
@@ -437,6 +453,7 @@ class LEGO:
         with self.restore_session(model_name) as sess:
             res = self.h3.eval(session=sess, feed_dict={
                 self.x: train,
+                self.is_training: False
             })
         self._plot_new_mse(res, label, xrange, yrange)
 
@@ -473,6 +490,8 @@ class LEGO:
     def reload_tensors(self, graph: tf.Graph):
         self.x = graph.get_tensor_by_name('x:0')
         self.y = graph.get_tensor_by_name('y:0')
+        self.keep_prob = graph.get_tensor_by_name('keep_prob:0')
+        self.is_training = graph.get_tensor_by_name('is_training:0')
 
         self.w1 = graph.get_tensor_by_name('w1:0')
         self.b1 = graph.get_tensor_by_name('b1:0')
@@ -505,13 +524,7 @@ class LEGO:
         #
         # self.h_concat = graph.get_tensor_by_name('h_concat:0')
 
-        # self.cross_entropy_loss = graph.get_tensor_by_name('cross_entropy_loss:0')
-        # self.training_step = graph.get_operation_by_name('training_step')
         # self.correct_pred = graph.get_tensor_by_name('correct_pred:0')
-        # self.accuracy = graph.get_tensor_by_name('accuracy:0')
-
-        self.training_step = graph.get_operation_by_name('training_step')
-        self.accuracy = graph.get_tensor_by_name('accuracy:0')
 
 
 if __name__ == '__main__':
@@ -524,6 +537,7 @@ if __name__ == '__main__':
         'conv2_size': 3,
         'fc_feat': 512,
         'lr': 10**-3,
+        'regularization': 0.01,
         'input': '5k.rb.256x192.tar.xz',
         'label': '5k.rb.256x192.label.txt',
         'random_rotate': 0,
@@ -535,21 +549,21 @@ if __name__ == '__main__':
         'keep_prob': 1,
         'batches': 10,
         'batch_size': 50,
-        'epoch': 6,
+        'epoch': 4,
         'model_name': '5k_rb',
         'normalize_func': lambda x: x / x.max()
     }
 
-    lego.train(**train_param)
+    # lego.train(**train_param)
 
     lego.plot_training_result(model_name=train_param.get('model_name'))
 
     lego.plot_activation(model_name=train_param.get('model_name'),
                          normalize_func=train_param.get('normalize_func'))
 
-    # lego.pred_test_img(images=['r.test.jpg', 'r.test2.jpg', 'r.test3.jpg'],
-    #                    model_name=train_param.get('model_name'),
-    #                    normalize_func=train_param.get('normalize_func'))
+    lego.pred_test_img(images=['rb.test.jpg', 'rb.test2.jpg', 'rb.test3.jpg'],
+                       model_name=train_param.get('model_name'),
+                       normalize_func=train_param.get('normalize_func'))
 
     # lego.pred_three_random_img(filename='20.rb.256x192.tar.xz',
     #                            model_name=train_param.get('model_name'),
