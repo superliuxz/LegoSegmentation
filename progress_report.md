@@ -173,3 +173,10 @@
 ---
 **Week 4** (June 3 ~ June 9)
 - things mentioned in the previous week
+- [ ] Auto encoder. Finally.
+---
+**Week 5** (June 10 ~ June 16)
+- things mentioned in the previous and previous previous week
+- progress has been slow down.
+  - might have interviews comming up which will further slow down the progress
+
