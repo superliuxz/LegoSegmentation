@@ -107,7 +107,7 @@ def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             train.append(img)
     train_data = np.array(train)
-    train_label = np.genfromtxt(label, delimiter=',')
+    train_label = np.genfromtxt(label, delimiter=',', dtype=np.float32)
 
     logger.info(f'normalize data...')
     train_data = normalize_func(train_data)
