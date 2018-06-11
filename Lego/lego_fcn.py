@@ -51,10 +51,36 @@ def build_model(X):
                              padding='SAME',
                              activation=tf.nn.relu,
                              name='conv3')
+
+    # dense layer for first channel
+    w_fc1 = tf.Variable(tf.truncated_normal([64*48, 512], stddev=0.1), name='w_fc1')
+    b_fc1 = tf.Variable(tf.constant(0.1, shape=[512]), name='b_fc1')
+    flat_pool_fc1 = tf.reshape(conv3[:, :, :, 0], [-1, 64*48], name='flat_pool_fc1')
+    h_fc1 = tf.add(tf.matmul(flat_pool_fc1, w_fc1), b_fc1, name='h_fc1')
+    # dense layer for second channel
+    w_fc2 = tf.Variable(tf.truncated_normal([64*48, 512], stddev=0.1), name='w_fc2')
+    b_fc2 = tf.Variable(tf.constant(0.1, shape=[512]), name='b_fc2')
+    flat_pool_fc2 = tf.reshape(conv3[:, :, :, 1], [-1, 64*48], name='flat_pool_fc2')
+    h_fc2 = tf.add(tf.matmul(flat_pool_fc2, w_fc2), b_fc2, name='h_fc2')
+    # concat two channel
+    h_concat = tf.concat([h_fc1, h_fc2], axis=-1, name='h_concat')
+
     # decoder
-    deconv1 = tf.layers.conv2d_transpose(conv3, 32,
+    concat = tf.concat([tf.reshape(h_fc1, [-1, 16, 32, 1]), tf.reshape(h_fc2, [-1, 16, 32, 1])],
+                       axis=-1,
+                       name='h_concat_reshape')
+    deconv0 = tf.layers.conv2d_transpose(concat, 2,
                                          kernel_size=(3, 3),
-                                         strides=(1, 1),
+                                         strides=(3, 2),
+                                         padding='SAME',
+                                         activation=tf.nn.relu,
+                                         name='deconv0')
+    deconv0 = tf.concat([deconv0, conv3],
+                        axis=-1,
+                        name='deconv0_concat')
+    deconv1 = tf.layers.conv2d_transpose(deconv0, 32,
+                                         kernel_size=(3, 3),
+                                         strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv1')
@@ -66,13 +92,13 @@ def build_model(X):
                                          name='deconv2')
     deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
                                          kernel_size=(3, 3),
-                                         strides=(2, 2),
+                                         strides=(1, 1),
                                          padding='SAME',
                                          name='deconv3')
-    return conv3, deconv3
+    return h_concat, deconv3
 
 
-def load_data(dataset: str, normalize_func: Callable) -> (np.array, np.array):
+def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
     train = []
     with tarfile.open(dataset) as tar:
         for f in tar.getmembers():
@@ -81,6 +107,7 @@ def load_data(dataset: str, normalize_func: Callable) -> (np.array, np.array):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             train.append(img)
     train_data = np.array(train)
+    train_label = np.genfromtxt(label, delimiter=',')
 
     logger.info(f'normalize data...')
     train_data = normalize_func(train_data)
@@ -89,22 +116,28 @@ def load_data(dataset: str, normalize_func: Callable) -> (np.array, np.array):
     idx = train_data.shape[0] // 5
     test_data = train_data[:idx]
     train_data = train_data[idx:]
+    test_label = train_label[:idx]
+    train_label = train_label[idx:]
 
     logger.info(f'training data: {train_data.shape}')
 
-    return train_data, test_data
+    return train_data, test_data, train_label, test_label
 
 
 def train():
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
-    train_data, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x/x.max())
+    train_data, test_data, train_label, test_label = \
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x/x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
 
     loss = tf.losses.mean_squared_error(X, decode_op)
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
+    loss_ = tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(labels=train_label, logits=encode_op)
+    )
+    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss+loss_)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
@@ -139,7 +172,8 @@ def test_encode():
     model_name = 'lego_fcn'
     tf.reset_default_graph()
 
-    *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data, test_data, train_label, test_label = \
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x / x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
@@ -167,11 +201,14 @@ def test_decode():
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
-    *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data, test_data, train_label, test_label = \
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x / x.max())
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
-    loss = tf.losses.mean_squared_error(X, decode_op)
+    loss = tf.losses.mean_squared_error(X, decode_op) + tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(labels=train_label, logits=encode_op)
+    )
     saver = tf.train.Saver()
 
     idx = np.random.randint(0, test_data.shape[0])
