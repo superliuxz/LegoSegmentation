@@ -107,7 +107,7 @@ def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             train.append(img)
     train_data = np.array(train)
-    train_label = np.genfromtxt(label, delimiter=',', dtype=np.float32)
+    train_label = np.genfromtxt(label, delimiter=',')
 
     logger.info(f'normalize data...')
     train_data = normalize_func(train_data)
@@ -131,13 +131,15 @@ def train():
     train_data, test_data, train_label, test_label = \
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x/x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
+    y = tf.placeholder(tf.float32, [None, 1024], name='y')
     encode_op, decode_op = build_model(X)
 
     loss = tf.losses.mean_squared_error(X, decode_op)
     loss_ = tf.reduce_mean(
-        tf.nn.sigmoid_cross_entropy_with_logits(labels=train_label, logits=encode_op)
+        tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss+loss_)
+    loss = loss+loss_
+    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
@@ -149,11 +151,13 @@ def train():
 
             train_loss, *_ = sess.run([loss, train_op],
                                       feed_dict={
-                                          X: train_data
+                                          X: train_data,
+                                          y: train_label
                                       })
             test_loss, *_ = sess.run([loss, train_op],
                                      feed_dict={
-                                        X: test_data
+                                        X: test_data,
+                                        y: test_label
                                      })
             if i % 100 == 0:
                 logger.info(f'epoch {i} training loss {train_loss} testing loss {test_loss}')
@@ -205,9 +209,10 @@ def test_decode():
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
+    y = tf.placeholder(tf.float32, [None, 1024], name='y')
     encode_op, decode_op = build_model(X)
     loss = tf.losses.mean_squared_error(X, decode_op) + tf.reduce_mean(
-        tf.nn.sigmoid_cross_entropy_with_logits(labels=train_label, logits=encode_op)
+        tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
     saver = tf.train.Saver()
 
@@ -218,7 +223,8 @@ def test_decode():
 
         final_layer, loss, *_ = sess.run([decode_op, loss],
                                          feed_dict={
-                                             X: test_data[idx:idx+1]
+                                             X: test_data[idx:idx+1],
+                                             y: test_label[idx:idx+1]
                                          })
     print(loss)
     plt.figure()
