@@ -129,7 +129,7 @@ def train():
     model_name = 'lego_fcn'
 
     train_data, test_data, train_label, test_label = \
-        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x/x.max())
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x/x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
 
@@ -173,7 +173,7 @@ def test_encode():
     tf.reset_default_graph()
 
     train_data, test_data, train_label, test_label = \
-        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x / x.max())
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
@@ -202,7 +202,7 @@ def test_decode():
     model_name = 'lego_fcn'
 
     train_data, test_data, train_label, test_label = \
-        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.256x192.label.txt', normalize_func=lambda x: x / x.max())
+        load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
