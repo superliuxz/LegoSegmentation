@@ -173,10 +173,12 @@
 ---
 **Week 4** (June 3 ~ June 9)
 - things mentioned in the previous week
-- [ ] Auto encoder. Finally.
+- [x] Auto encoder. Finally.
 ---
 **Week 5** (June 10 ~ June 16)
 - things mentioned in the previous and previous previous week
+  - autoencoder is working but the middle two channels are not splitting the red and blue
+    - [ ] to solve, need to use another loss function the guide the middle two layers to identify the red and blue
 - progress has been slow down.
   - might have interviews comming up which will further slow down the progress
 
