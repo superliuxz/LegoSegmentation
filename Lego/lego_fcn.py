@@ -193,13 +193,15 @@ def test_encode():
                                         X: test_data[idx:idx+1],
                                         y: test_label[idx:idx+1]
                                     })
+    p1 = np.reshape(middle_layer[0][:512], [16, 32])
+    p2 = np.reshape(middle_layer[0][512:], [16, 32])
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
     plt.subplot(1, 3, 2)
-    plt.imshow(np.reshape(middle_layer[:, :, :, 0], (middle_layer.shape[1], middle_layer.shape[2])), cmap='binary')
+    plt.imshow(p1, cmap='binary')
     plt.subplot(1, 3, 3)
-    plt.imshow(np.reshape(middle_layer[:, :, :, 1], (middle_layer.shape[1], middle_layer.shape[2])), cmap='binary')
+    plt.imshow(p2, cmap='binary')
     plt.show()
 
 
@@ -241,6 +243,6 @@ def test_decode():
 
 
 if __name__ == '__main__':
-    train()
+    # train()
     test_encode()
     test_decode()
