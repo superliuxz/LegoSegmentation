@@ -154,7 +154,7 @@ def train():
                                           X: train_data,
                                           y: train_label
                                       })
-            test_loss, *_ = sess.run([loss, train_op],
+            test_loss, *_ = sess.run([loss],
                                      feed_dict={
                                         X: test_data,
                                         y: test_label
@@ -163,13 +163,6 @@ def train():
                 logger.info(f'epoch {i} training loss {train_loss} testing loss {test_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
-
-        idx = np.random.randint(0, test_data.shape[0])
-
-        middle_layer, final_layer, loss, *_ = sess.run([encode_op, decode_op, loss],
-                                                       feed_dict={
-                                                           X: test_data[idx:idx + 1]
-                                                       })
 
 
 def test_encode():
