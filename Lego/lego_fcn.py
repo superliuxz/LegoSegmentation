@@ -179,6 +179,7 @@ def test_encode():
     train_data, test_data, train_label, test_label = \
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
+    y = tf.placeholder(tf.float32, [None, 1024], name='y')
     encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
 
@@ -189,7 +190,8 @@ def test_encode():
 
         middle_layer, *_ = sess.run([encode_op],
                                     feed_dict={
-                                        X: test_data[idx:idx+1]
+                                        X: test_data[idx:idx+1],
+                                        y: test_label[idx:idx+1]
                                     })
     plt.figure()
     plt.subplot(1, 3, 1)
