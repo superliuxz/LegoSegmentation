@@ -214,9 +214,9 @@ def test_encode():
                                         y: test_label[idx:idx+1]
                                     })
     p1 = np.reshape(middle_layer[0][:512], [16, 32])
-    p1 = np.round(1 / (1 + np.exp(-p1)))
+    p1 = 1 / (1 + np.exp(-p1))
     p2 = np.reshape(middle_layer[0][512:], [16, 32])
-    p2 = np.round(1 / (1 + np.exp(-p2)))
+    p2 = 1 / (1 + np.exp(-p2))
     plt.figure()
     plt.subplot(3, 3, 1)
     plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
@@ -269,6 +269,6 @@ def test_decode():
 
 
 if __name__ == '__main__':
-    train(mode='alternative')
+    # train(mode='alternative')
     test_encode()
     test_decode()
