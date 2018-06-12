@@ -124,7 +124,7 @@ def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, 
     return train_data, test_data, train_label, test_label
 
 
-def train():
+def train(mode: str):
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
@@ -138,6 +138,8 @@ def train():
     crx_entr_loss = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
+    l2_train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss)
+    crx_entr_train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(crx_entr_loss)
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss+crx_entr_loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -145,26 +147,56 @@ def train():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for i in range(50000):
-            train_data = train_data[np.random.permutation(train_data.shape[0])]
-
-            train_l2_loss, train_crx_entr_loss, *_ = \
-                sess.run([l2_loss, crx_entr_loss, train_op],
-                         feed_dict={
-                             X: train_data,
-                             y: train_label
-                         })
-            test_l2_loss, test_crx_entr_loss, *_ = sess.run([l2_loss, crx_entr_loss],
-                                                            feed_dict={
-                                                               X: test_data,
-                                                               y: test_label
-                                                            })
-            if i % 100 == 0:
-                logger.info(f'epoch {i} '
-                            f'training l2loss {train_l2_loss:.10f} '
-                            f'training cross entropy loss {train_crx_entr_loss:.10f} '
-                            f'testing l2loss {test_l2_loss:.10f} '
-                            f'testing cross entropy loss {test_crx_entr_loss:.10f}')
+        for i in range(10000):
+            if mode == 'joint':
+                train_l2_loss, train_crx_entr_loss, *_ = \
+                    sess.run([l2_loss, crx_entr_loss, train_op],
+                             feed_dict={
+                                 X: train_data,
+                                 y: train_label
+                             })
+                test_l2_loss, test_crx_entr_loss, *_ = sess.run([l2_loss, crx_entr_loss],
+                                                                feed_dict={
+                                                                   X: test_data,
+                                                                   y: test_label
+                                                                })
+                if i % 100 == 0:
+                    logger.info(f'epoch {i} '
+                                f'training l2loss {train_l2_loss:.10f} '
+                                f'training cross entropy loss {train_crx_entr_loss:.10f} '
+                                f'testing l2loss {test_l2_loss:.10f} '
+                                f'testing cross entropy loss {test_crx_entr_loss:.10f}')
+            elif mode == 'alternative':
+                if i%2 == 0:
+                    train_l2_loss, *_ = sess.run([l2_loss, l2_train_op],
+                                                 feed_dict={
+                                                     X: train_data,
+                                                     y: train_label
+                                                 })
+                    test_l2_loss, *_ = sess.run([l2_loss],
+                                                feed_dict={
+                                                    X: test_data,
+                                                    y: test_label
+                                                })
+                    if i % 100 == 0:
+                        logger.info(f'epoch {i} '
+                                    f'training l2loss {train_l2_loss:.10f} '
+                                    f'testing l2loss {test_l2_loss:.10f} ')
+                else:
+                    train_crx_entr_loss, *_ = sess.run([crx_entr_loss, crx_entr_train_op],
+                                                       feed_dict={
+                                                           X: train_data,
+                                                           y: train_label
+                                                       })
+                    test_crx_entr_loss, *_ = sess.run([crx_entr_loss],
+                                                      feed_dict={
+                                                          X: test_data,
+                                                          y: test_label
+                                                      })
+                    if i % 100 == 1:
+                        logger.info(f'epoch {i} '
+                                    f'training cross entropy loss {train_crx_entr_loss:.10f} '
+                                    f'testing cross entropy loss {test_crx_entr_loss:.10f}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
@@ -191,7 +223,9 @@ def test_encode():
                                         y: test_label[idx:idx+1]
                                     })
     p1 = np.reshape(middle_layer[0][:512], [16, 32])
+    p1 = np.round(1 / (1 + np.exp(-p1)))
     p2 = np.reshape(middle_layer[0][512:], [16, 32])
+    p2 = np.round(1 / (1 + np.exp(-p2)))
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
@@ -240,6 +274,6 @@ def test_decode():
 
 
 if __name__ == '__main__':
-    train()
+    # train(mode='alternative')
     test_encode()
     test_decode()
