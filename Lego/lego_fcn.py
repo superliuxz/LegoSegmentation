@@ -69,7 +69,7 @@ def build_model(X):
     concat = tf.concat([tf.reshape(h_fc1, [-1, 16, 32, 1]), tf.reshape(h_fc2, [-1, 16, 32, 1])],
                        axis=-1,
                        name='h_concat_reshape')
-    deconv0 = tf.layers.conv2d_transpose(concat, 2,
+    deconv0 = tf.layers.conv2d_transpose(concat, 32,
                                          kernel_size=(3, 3),
                                          strides=(3, 2),
                                          padding='SAME',
@@ -78,24 +78,19 @@ def build_model(X):
     deconv0 = tf.concat([deconv0, conv3],
                         axis=-1,
                         name='deconv0_concat')
-    deconv1 = tf.layers.conv2d_transpose(deconv0, 32,
+    deconv1 = tf.layers.conv2d_transpose(deconv0, 16,
                                          kernel_size=(3, 3),
                                          strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv1')
-    deconv2 = tf.layers.conv2d_transpose(deconv1, 16,
+    deconv2 = tf.layers.conv2d_transpose(deconv1, 3,
                                          kernel_size=(3, 3),
                                          strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv2')
-    deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
-                                         kernel_size=(3, 3),
-                                         strides=(1, 1),
-                                         padding='SAME',
-                                         name='deconv3')
-    return conv3, h_concat, deconv3
+    return conv3, h_concat, deconv2
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
