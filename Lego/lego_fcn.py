@@ -45,7 +45,7 @@ def build_model(X):
                                        strides=(2, 2),
                                        padding='SAME',
                                        name='pool2')
-    conv3 = tf.layers.conv2d(maxpool2, 2,
+    conv3 = tf.layers.conv2d(maxpool2, 1,
                              kernel_size=(3, 3),
                              strides=(1, 1),
                              padding='SAME',
@@ -86,20 +86,25 @@ def load_data(dataset: str, normalize_func: Callable) -> (np.array, np.array):
     train_data = normalize_func(train_data)
     logger.info(f'done')
 
-    idx = train_data.shape[0] // 5
-    test_data = train_data[:idx]
-    train_data = train_data[idx:]
+    #idx = train_data.shape[0] // 5
+    #test_data = train_data[:idx]
+    #train_data = train_data[idx:]
 
     logger.info(f'training data: {train_data.shape}')
 
-    return train_data, test_data
+    # return train_data, test_data
+    return train_data
 
 
 def train():
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
-    train_data, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x/x.max())
+    # train_data, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x/x.max())
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x/x.max())
+    # train_data = np.vstack((train_data, train_data2))
+
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
 
@@ -114,52 +119,53 @@ def train():
         for i in range(5000):
             train_data = train_data[np.random.permutation(train_data.shape[0])]
 
-            train_loss, *_ = sess.run([loss, train_op],
-                                      feed_dict={
-                                          X: train_data
-                                      })
-            test_loss, *_ = sess.run([loss, train_op],
-                                     feed_dict={
-                                        X: test_data
-                                     })
-            if i % 100 == 0:
-                logger.info(f'epoch {i} training loss {train_loss} testing loss {test_loss}')
+            batch_idx = 0
+            batch_size = 20
+            while batch_idx < train_data.shape[0]:
+                X_ = train_data[batch_idx:batch_idx+batch_size]
+
+                train_loss, *_ = sess.run([loss, train_op],
+                                          feed_dict={
+                                              X: X_
+                                          })
+                batch_idx += batch_size
+                # test_loss, *_ = sess.run([loss, train_op],
+                #                          feed_dict={
+                #                             X: test_data
+                #                          })
+            #if i % 100 == 0:
+            logger.info(f'epoch {i} training loss {train_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
-
-        idx = np.random.randint(0, test_data.shape[0])
-
-        middle_layer, final_layer, loss, *_ = sess.run([encode_op, decode_op, loss],
-                                                       feed_dict={
-                                                           X: test_data[idx:idx + 1]
-                                                       })
 
 
 def test_encode():
     model_name = 'lego_fcn'
     tf.reset_default_graph()
 
-    *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = np.vstack((train_data, train_data2))
+
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
 
-    idx = np.random.randint(0, test_data.shape[0])
+    idx = np.random.randint(0, train_data.shape[0])
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
 
         middle_layer, *_ = sess.run([encode_op],
                                     feed_dict={
-                                        X: test_data[idx:idx+1]
+                                        X: train_data[idx:idx+1]
                                     })
     plt.figure()
     plt.subplot(1, 3, 1)
-    plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
-    plt.subplot(1, 3, 2)
+    plt.imshow(train_data[idx:idx + 1].reshape(train_data.shape[1], train_data.shape[2], 3))
+    plt.subplot(1, 2, 2)
     plt.imshow(np.reshape(middle_layer[:, :, :, 0], (middle_layer.shape[1], middle_layer.shape[2])), cmap='binary')
-    plt.subplot(1, 3, 3)
-    plt.imshow(np.reshape(middle_layer[:, :, :, 1], (middle_layer.shape[1], middle_layer.shape[2])), cmap='binary')
     plt.show()
 
 
@@ -167,26 +173,29 @@ def test_decode():
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
-    *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = np.vstack((train_data, train_data2))
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
     loss = tf.losses.mean_squared_error(X, decode_op)
     saver = tf.train.Saver()
 
-    idx = np.random.randint(0, test_data.shape[0])
+    idx = np.random.randint(0, train_data.shape[0])
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
 
         final_layer, loss, *_ = sess.run([decode_op, loss],
                                          feed_dict={
-                                             X: test_data[idx:idx+1]
+                                             X: train_data[idx:idx+1]
                                          })
     print(loss)
     plt.figure()
     plt.subplot(1, 2, 1)
-    plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
+    plt.imshow(train_data[idx:idx + 1].reshape(train_data.shape[1], train_data.shape[2], 3))
     plt.subplot(1, 2, 2)
     final_layer = final_layer.reshape(final_layer.shape[1], final_layer.shape[2], 3)
     final_layer = (final_layer * 255).astype(np.uint8)
@@ -195,7 +204,29 @@ def test_decode():
     plt.show()
 
 
+def save_midddle_to_file():
+    tf.reset_default_graph()
+    model_name = 'lego_fcn'
+
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+
+    X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
+    encode_op, decode_op = build_model(X)
+    saver = tf.train.Saver()
+
+    with tf.Session() as sess:
+        saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
+
+        middle_layer, *_ = sess.run([encode_op],
+                                    feed_dict={
+                                        X: train_data
+                                    })
+    for i, layer in enumerate(middle_layer):
+        cv2.imwrite(f'{i:02d}.jpg', 255 - layer.reshape(layer.shape[0], layer.shape[1]) * 255)
+
+
 if __name__ == '__main__':
-    train()
-    test_encode()
-    test_decode()
+    # train()
+    # test_encode()
+    # test_decode()
+    save_midddle_to_file()
