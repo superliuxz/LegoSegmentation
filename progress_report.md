@@ -173,10 +173,15 @@
 ---
 **Week 4** (June 3 ~ June 9)
 - things mentioned in the previous week
-- [ ] Auto encoder. Finally.
+- [x] Auto encoder. Finally.
 ---
 **Week 5** (June 10 ~ June 16)
 - things mentioned in the previous and previous previous week
+  - autoencoder is working but the middle two channels are not splitting the red and blue
+    - [x] to solve, need to use another loss function the guide the middle two layers to identify the red and blue
+      - the two channels in the middle are not splitting the red and blue
+    - back to the previous autoencoder model that is not splitting the middle two channels for red and blue (two generic channels in the middle), i discovered that the two channels are actually identifying the board and the background.
+      - [ ] use the channel that is the board to split red and blue
 - progress has been slow down.
   - might have interviews comming up which will further slow down the progress
 
