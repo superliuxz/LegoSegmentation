@@ -238,9 +238,9 @@ def test_encode():
     plt.subplot(3, 3, 6)
     plt.imshow(np.reshape(test_label[idx:idx+1][0][512:], (16, 32)), cmap='binary')
     plt.subplot(3, 3, 8)
-    plt.imshow(conv3[0, :, :, 0].reshape(16, 32))
+    plt.imshow(conv3[0, :, :, 0].reshape(48, 64))
     plt.subplot(3, 3, 9)
-    plt.imshow(conv3[0, :, :, 1].reshape(16, 32))
+    plt.imshow(conv3[0, :, :, 1].reshape(48, 64))
     plt.show()
 
 
