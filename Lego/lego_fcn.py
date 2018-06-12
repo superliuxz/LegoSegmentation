@@ -132,7 +132,7 @@ def train(mode: str):
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x/x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    encode_op, decode_op = build_model(X)
+    conv3, encode_op, decode_op = build_model(X)
 
     l2_loss = tf.losses.mean_squared_error(X, decode_op)
     crx_entr_loss = tf.reduce_mean(
