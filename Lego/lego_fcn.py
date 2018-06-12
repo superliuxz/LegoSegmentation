@@ -51,25 +51,13 @@ def build_model(X):
                              padding='SAME',
                              activation=tf.nn.relu,
                              name='conv3')
-
-    # dense layer for first channel
-    w_fc1 = tf.Variable(tf.truncated_normal([64*48, 512], stddev=0.1), name='w_fc1')
-    b_fc1 = tf.Variable(tf.constant(0.1, shape=[512]), name='b_fc1')
-    flat_pool_fc1 = tf.reshape(conv3[:, :, :, 0], [-1, 64*48], name='flat_pool_fc1')
-    h_fc1 = tf.add(tf.matmul(flat_pool_fc1, w_fc1), b_fc1, name='h_fc1')
-    # dense layer for second channel
-    w_fc2 = tf.Variable(tf.truncated_normal([64*48, 512], stddev=0.1), name='w_fc2')
-    b_fc2 = tf.Variable(tf.constant(0.1, shape=[512]), name='b_fc2')
-    flat_pool_fc2 = tf.reshape(conv3[:, :, :, 1], [-1, 64*48], name='flat_pool_fc2')
-    h_fc2 = tf.add(tf.matmul(flat_pool_fc2, w_fc2), b_fc2, name='h_fc2')
-    # concat two channel
-    h_concat = tf.concat([h_fc1, h_fc2], axis=-1, name='h_concat')
-
+    maxpool3 = tf.layers.max_pooling2d(conv3,
+                                       pool_size=(2, 2),
+                                       strides=(3, 2),
+                                       padding='SAME',
+                                       name='pool3')
     # decoder
-    concat = tf.concat([tf.reshape(h_fc1, [-1, 16, 32, 1]), tf.reshape(h_fc2, [-1, 16, 32, 1])],
-                       axis=-1,
-                       name='h_concat_reshape')
-    deconv0 = tf.layers.conv2d_transpose(concat, 32,
+    deconv0 = tf.layers.conv2d_transpose(maxpool3, 2,
                                          kernel_size=(3, 3),
                                          strides=(3, 2),
                                          padding='SAME',
@@ -78,19 +66,25 @@ def build_model(X):
     deconv0 = tf.concat([deconv0, conv3],
                         axis=-1,
                         name='deconv0_concat')
-    deconv1 = tf.layers.conv2d_transpose(deconv0, 16,
+    deconv1 = tf.layers.conv2d_transpose(deconv0, 32,
                                          kernel_size=(3, 3),
                                          strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv1')
-    deconv2 = tf.layers.conv2d_transpose(deconv1, 3,
+    deconv2 = tf.layers.conv2d_transpose(deconv1, 16,
                                          kernel_size=(3, 3),
                                          strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv2')
-    return conv3, h_concat, deconv2
+    deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
+                                         kernel_size=(3, 3),
+                                         strides=(1, 1),
+                                         padding='SAME',
+                                         activation=tf.nn.relu,
+                                         name='deconv3')
+    return maxpool3, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
@@ -127,7 +121,7 @@ def train(mode: str):
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x/x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    conv3, encode_op, decode_op = build_model(X)
+    encode_op, decode_op = build_model(X)
 
     l2_loss = tf.losses.mean_squared_error(X, decode_op)
     crx_entr_loss = tf.reduce_mean(
@@ -204,7 +198,7 @@ def test_encode():
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    conv3, encode_op, decode_op = build_model(X)
+    encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
 
     idx = np.random.randint(0, test_data.shape[0])
@@ -212,7 +206,7 @@ def test_encode():
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
 
-        conv3, middle_layer, *_ = sess.run([conv3, encode_op],
+        middle_layer, *_ = sess.run([encode_op],
                                     feed_dict={
                                         X: test_data[idx:idx+1],
                                         y: test_label[idx:idx+1]
@@ -232,10 +226,6 @@ def test_encode():
     plt.imshow(np.reshape(test_label[idx:idx+1][0][:512], (16, 32)), cmap='binary')
     plt.subplot(3, 3, 6)
     plt.imshow(np.reshape(test_label[idx:idx+1][0][512:], (16, 32)), cmap='binary')
-    plt.subplot(3, 3, 8)
-    plt.imshow(conv3[0, :, :, 0].reshape(48, 64))
-    plt.subplot(3, 3, 9)
-    plt.imshow(conv3[0, :, :, 1].reshape(48, 64))
     plt.show()
 
 
@@ -248,7 +238,7 @@ def test_decode():
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    conv3, encode_op, decode_op = build_model(X)
+    encode_op, decode_op = build_model(X)
     loss = tf.losses.mean_squared_error(X, decode_op) + tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
