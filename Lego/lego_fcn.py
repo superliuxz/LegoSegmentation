@@ -56,6 +56,8 @@ def build_model(X):
                                        strides=(3, 2),
                                        padding='SAME',
                                        name='pool3')
+    flatten = tf.concat([tf.reshape(maxpool3[:,:,:,0], shape=(-1, 512)), tf.reshape(maxpool3[:,:,:,1], shape=(-1, 512))],
+                        axis=1)
     # decoder
     deconv0 = tf.layers.conv2d_transpose(maxpool3, 2,
                                          kernel_size=(3, 3),
@@ -84,7 +86,7 @@ def build_model(X):
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv3')
-    return maxpool3, deconv3
+    return flatten, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
