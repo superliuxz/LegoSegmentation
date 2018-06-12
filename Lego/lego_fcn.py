@@ -134,33 +134,37 @@ def train():
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
     encode_op, decode_op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(X, decode_op)
-    loss_ = tf.reduce_mean(
+    l2_loss = tf.losses.mean_squared_error(X, decode_op)
+    crx_entr_loss = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
-    loss = loss+loss_
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
+    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss+crx_entr_loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for i in range(5000):
+        for i in range(50000):
             train_data = train_data[np.random.permutation(train_data.shape[0])]
 
-            train_loss, *_ = sess.run([loss, train_op],
-                                      feed_dict={
-                                          X: train_data,
-                                          y: train_label
-                                      })
-            test_loss, *_ = sess.run([loss],
-                                     feed_dict={
-                                        X: test_data,
-                                        y: test_label
-                                     })
+            train_l2_loss, train_crx_entr_loss, *_ = \
+                sess.run([l2_loss, crx_entr_loss, train_op],
+                         feed_dict={
+                             X: train_data,
+                             y: train_label
+                         })
+            test_l2_loss, test_crx_entr_loss, *_ = sess.run([l2_loss, crx_entr_loss],
+                                                            feed_dict={
+                                                               X: test_data,
+                                                               y: test_label
+                                                            })
             if i % 100 == 0:
-                logger.info(f'epoch {i} training loss {train_loss} testing loss {test_loss}')
+                logger.info(f'epoch {i} '
+                            f'training l2loss {train_l2_loss:.10f} '
+                            f'training cross entropy loss {train_crx_entr_loss:.10f} '
+                            f'testing l2loss {test_l2_loss:.10f} '
+                            f'testing cross entropy loss {test_crx_entr_loss:.10f}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
@@ -236,6 +240,6 @@ def test_decode():
 
 
 if __name__ == '__main__':
-    # train()
+    train()
     test_encode()
     test_decode()
