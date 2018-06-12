@@ -95,7 +95,7 @@ def build_model(X):
                                          strides=(1, 1),
                                          padding='SAME',
                                          name='deconv3')
-    return h_concat, deconv3
+    return conv3, h_concat, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
@@ -209,7 +209,7 @@ def test_encode():
         load_data(dataset='20.rb.256x192.tar.xz', label='20.rb.two_channels.256x192.label.txt', normalize_func=lambda x: x / x.max())
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    encode_op, decode_op = build_model(X)
+    conv3, encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
 
     idx = np.random.randint(0, test_data.shape[0])
@@ -217,7 +217,7 @@ def test_encode():
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
 
-        middle_layer, *_ = sess.run([encode_op],
+        conv3, middle_layer, *_ = sess.run([conv3, encode_op],
                                     feed_dict={
                                         X: test_data[idx:idx+1],
                                         y: test_label[idx:idx+1]
@@ -227,16 +227,20 @@ def test_encode():
     p2 = np.reshape(middle_layer[0][512:], [16, 32])
     p2 = np.round(1 / (1 + np.exp(-p2)))
     plt.figure()
-    plt.subplot(2, 3, 1)
+    plt.subplot(3, 3, 1)
     plt.imshow(test_data[idx:idx + 1].reshape(test_data.shape[1], test_data.shape[2], 3))
-    plt.subplot(2, 3, 2)
+    plt.subplot(3, 3, 2)
     plt.imshow(p1, cmap='binary')
-    plt.subplot(2, 3, 3)
+    plt.subplot(3, 3, 3)
     plt.imshow(p2, cmap='binary')
-    plt.subplot(2, 3, 5)
+    plt.subplot(3, 3, 5)
     plt.imshow(np.reshape(test_label[idx:idx+1][0][:512], (16, 32)), cmap='binary')
-    plt.subplot(2, 3, 6)
+    plt.subplot(3, 3, 6)
     plt.imshow(np.reshape(test_label[idx:idx+1][0][512:], (16, 32)), cmap='binary')
+    plt.subplot(3, 3, 8)
+    plt.imshow(conv3[0, :, :, 0].reshape(16, 32))
+    plt.subplot(3, 3, 9)
+    plt.imshow(conv3[0, :, :, 1].reshape(16, 32))
     plt.show()
 
 
@@ -249,7 +253,7 @@ def test_decode():
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 1024], name='y')
-    encode_op, decode_op = build_model(X)
+    conv3, encode_op, decode_op = build_model(X)
     loss = tf.losses.mean_squared_error(X, decode_op) + tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
     )
@@ -278,6 +282,6 @@ def test_decode():
 
 
 if __name__ == '__main__':
-    # train(mode='alternative')
+    train(mode='alternative')
     test_encode()
     test_decode()
