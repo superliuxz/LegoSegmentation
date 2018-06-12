@@ -179,7 +179,8 @@
 - things mentioned in the previous and previous previous week
   - autoencoder is working but the middle two channels are not splitting the red and blue
     - [x] to solve, need to use another loss function the guide the middle two layers to identify the red and blue
-      - [ ] autoencoding is still working but the middle layers are not. fix it.   
+      - [x] autoencoding is still working but the middle layers are not. fix it.
+      - two layers are not doing too good for the testing images...
 - progress has been slow down.
   - might have interviews comming up which will further slow down the progress
 
