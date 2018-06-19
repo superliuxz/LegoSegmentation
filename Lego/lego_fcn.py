@@ -215,8 +215,6 @@ def save_midddle_to_file():
     encode_op, decode_op = build_model(X)
     saver = tf.train.Saver()
 
-    idx = np.random.randint(0, train_data.shape[0])
-
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
 
