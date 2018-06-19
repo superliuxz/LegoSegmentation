@@ -188,3 +188,10 @@
 **Week 6** (June 17 ~ June 23)
 - back from the interview
 - keep working on the two channel models, with all 120 real images, and only one channel in the middle
+  - works
+  - after a long discussion, i can conclude that the position detection is working
+  - now have to focus on color detection
+- [ ] for the above model, save the middle layer as pictures
+  - [ ] for each picture, use a paint tool to annotate brick with their corresponding color
+    - i.e., if a picture has blue and red bricks in, generate two pictures, first with red annotation, second with red annotation.
+  - [ ] then train on a very simple model: with only one conv layer, 1x1x2 
