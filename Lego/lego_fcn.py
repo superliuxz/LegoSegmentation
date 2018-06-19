@@ -220,7 +220,7 @@ def save_midddle_to_file():
 
         middle_layer, *_ = sess.run([encode_op],
                                     feed_dict={
-                                        X: train_data[idx:idx + 1]
+                                        X: train_data
                                     })
     for i, layer in enumerate(middle_layer):
         print(layer.shape)
