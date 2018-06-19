@@ -128,12 +128,14 @@ def train():
                                           feed_dict={
                                               X: X_
                                           })
+                batch_idx += batch_size
                 # test_loss, *_ = sess.run([loss, train_op],
                 #                          feed_dict={
                 #                             X: test_data
                 #                          })
             #if i % 100 == 0:
             logger.info(f'epoch {i} training loss {train_loss}')
+
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
