@@ -182,6 +182,9 @@
       - the two channels in the middle are not splitting the red and blue
     - back to the previous autoencoder model that is not splitting the middle two channels for red and blue (two generic channels in the middle), i discovered that the two channels are actually identifying the board and the background.
       - [ ] use the channel that is the board to split red and blue
+  - use 120 images and only one channel 
 - progress has been slow down.
   - might have interviews comming up which will further slow down the progress
-
+**Week 6** (June 17 ~ June 23)
+- back from the interview
+- keep working on the two channel models, with all 120 real images, and only one channel in the middle
