@@ -226,7 +226,7 @@ def save_midddle_to_file():
                                     })
     for i, layer in enumerate(middle_layer):
         print(layer.shape)
-        img = Image.fromarray(layer.reshape(middle_layer.shape[0], middle_layer.shape[1]), 'L')
+        img = Image.fromarray(layer.reshape(layer.shape[0], layer.shape[1]), 'L')
         img.save(f'{i}.jpg')
 
 if __name__ == '__main__':
