@@ -101,9 +101,9 @@ def train():
     model_name = 'lego_fcn'
 
     # train_data, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x/x.max())
-    train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data2 = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x/x.max())
-    train_data = np.vstack((train_data, train_data2))
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x/x.max())
+    # train_data = np.vstack((train_data, train_data2))
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
@@ -145,9 +145,9 @@ def test_encode():
     tf.reset_default_graph()
 
     # *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data2 = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data = np.vstack((train_data, train_data2))
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = np.vstack((train_data, train_data2))
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
@@ -175,9 +175,9 @@ def test_decode():
     model_name = 'lego_fcn'
 
     # *_, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data2 = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data = np.vstack((train_data, train_data2))
+    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+    # train_data = np.vstack((train_data, train_data2))
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
     encode_op, decode_op = build_model(X)
@@ -205,7 +205,32 @@ def test_decode():
     plt.show()
 
 
+def save_midddle_to_file():
+    tf.reset_default_graph()
+    model_name = 'lego_fcn'
+
+    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x / x.max())
+
+    X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
+    encode_op, decode_op = build_model(X)
+    saver = tf.train.Saver()
+
+    idx = np.random.randint(0, train_data.shape[0])
+
+    with tf.Session() as sess:
+        saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
+
+        middle_layer, *_ = sess.run([encode_op],
+                                    feed_dict={
+                                        X: train_data[idx:idx + 1]
+                                    })
+    for i, layer in enumerate(middle_layer):
+        print(layer.shape)
+        img = Image.fromarray(layer, 'L')
+        img.save(f'{i}.jpg')
+
 if __name__ == '__main__':
     train()
-    test_encode()
-    test_decode()
+    # test_encode()
+    # test_decode()
+    save_midddle_to_file()
