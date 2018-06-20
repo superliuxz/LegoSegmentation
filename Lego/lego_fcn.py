@@ -136,7 +136,6 @@ def train():
             #if i % 100 == 0:
             logger.info(f'epoch {i} training loss {train_loss}')
 
-
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
 
@@ -223,12 +222,11 @@ def save_midddle_to_file():
                                         X: train_data
                                     })
     for i, layer in enumerate(middle_layer):
-        print(layer.shape)
-        img = Image.fromarray(layer.reshape(layer.shape[0], layer.shape[1]), 'L')
-        img.save(f'{i}.jpg')
+        cv2.imwrite(f'{i:02d}.jpg', 255 - layer.reshape(layer.shape[0], layer.shape[1]) * 255)
+
 
 if __name__ == '__main__':
-    train()
+    # train()
     # test_encode()
     # test_decode()
     save_midddle_to_file()
