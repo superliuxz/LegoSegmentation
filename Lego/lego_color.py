@@ -71,8 +71,8 @@ def train():
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], (None, op.shape[1], op.shape[2]))) + \
-            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], (None, op.shape[1], op.shape[2])))
+    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], [None, op.shape[1], op.shape[2]])) + \
+            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], [None, op.shape[1], op.shape[2]]))
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -121,8 +121,8 @@ def plot():
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], (None, op.shape[1], op.shape[2]))) + \
-            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], (None, op.shape[1], op.shape[2])))
+    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], [None, op.shape[1], op.shape[2]])) + \
+            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], [None, op.shape[1], op.shape[2]]))
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver()
