@@ -35,7 +35,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
-    blue = blue.reshape([blue.shape[0], blue.shape[1], blue.shape[2], 1])
+    blue = blue.reshape([blue.shape[0], blue.shape[1], blue.shape[2]])
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -44,7 +44,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
-    yellow = yellow.reshape([yellow.shape[0], yellow.shape[1], yellow.shape[2], 1])
+    yellow = yellow.reshape([yellow.shape[0], yellow.shape[1], yellow.shape[2]])
 
     train = train/train.max()
     blue = blue/blue.max()
@@ -68,8 +68,8 @@ def train():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
 
     op = build_model(X)
 
@@ -117,8 +117,8 @@ def plot():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
 
     op = build_model(X)
 
