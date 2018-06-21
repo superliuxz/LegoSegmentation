@@ -35,6 +35,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
+    blue = blue.reshape([blue.shape[0], blue.shape[1], blue.shape[2], 1])
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -43,6 +44,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
+    yellow = yellow.reshape([yellow.shape[0], yellow.shape[1], yellow.shape[2], 1])
 
     train = train/train.max()
     blue = blue/blue.max()
@@ -66,12 +68,12 @@ def train():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 3], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 3], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, y_blue) + tf.losses.mean_squared_error(yellow, y_yellow)
+    loss = tf.losses.mean_squared_error(blue, op[:,:,:,0]) + tf.losses.mean_squared_error(yellow, op[:,:,:,1])
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -115,12 +117,12 @@ def plot():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 3], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 3], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, y_blue) + tf.losses.mean_squared_error(yellow, y_yellow)
+    loss = tf.losses.mean_squared_error(blue, op[:,:,:,0]) + tf.losses.mean_squared_error(yellow, op[:,:,:,1])
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver()
