@@ -124,7 +124,7 @@ def plot():
 
     saver = tf.train.Saver()
 
-    idx = np.random.randint(0, train.shape[0])
+    idx = np.random.randint(0, test.shape[0])
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
@@ -148,5 +148,5 @@ def plot():
 
 
 if __name__ == '__main__':
-    train()
+    # train()
     plot()

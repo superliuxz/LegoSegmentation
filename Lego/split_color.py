@@ -20,8 +20,7 @@ for i in range(5000):
     blue = cv2.cvtColor(blue, cv2.COLOR_RGB2GRAY)
     yellow = cv2.cvtColor(yellow, cv2.COLOR_RGB2GRAY)
 
-
-    cv2.imwrite(f'{i+1:04d}x.png', img)
+    cv2.imwrite(f'{i+1:04d}x.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     cv2.imwrite(f'{i+1:04d}b.png', blue)
     cv2.imwrite(f'{i+1:04d}y.png', yellow)
 print('done')
