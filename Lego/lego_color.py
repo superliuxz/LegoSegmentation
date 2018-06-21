@@ -33,7 +33,6 @@ def load_data():
         for f in tar.getmembers():
             bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             blue.append(img)
     blue = np.array(blue)
 
@@ -42,7 +41,6 @@ def load_data():
         for f in tar.getmembers():
             bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             yellow.append(img)
     yellow = np.array(yellow)
 
@@ -101,11 +99,11 @@ def train():
                                           })
                 idx+=batch_size
                 test_loss, *_ = sess.run([loss, train_op],
-                                        feed_dict={
-                                            X: test,
-                                            y_blue: bluetest,
-                                            y_yellow: yellowtest
-                                        }) 
+                                         feed_dict={
+                                             X: test,
+                                             y_blue: bluetest,
+                                             y_yellow: yellowtest
+                                         }) 
                 logger.info(f'epoch {ep} batch {idx} training loss {train_loss} test loss {test_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
