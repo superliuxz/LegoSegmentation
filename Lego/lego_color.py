@@ -35,7 +35,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
-    blue = np.reshape(blue, blue.shape[:-1])
+    blue = np.reshape(blue, (blue.shape[0], blue.shape[1], blue.shape[2], 1))
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -44,7 +44,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
-    yellow = np.reshape(yellow, yellow.shape[:-1])
+    yellow = np.reshape(yellow, (yellow.shape[0], yellow.shape[1], yellow.shape[2], 1))
 
     train = train/train.max()
     blue = blue/blue.max()
