@@ -35,7 +35,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
-    blue = np.reshape(blue, (blue.shape[0], blue.shape[1], blue.shape[2], 1))
+    # blue = np.reshape(blue, (blue.shape[0], blue.shape[1], blue.shape[2], 1))
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -44,7 +44,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
-    yellow = np.reshape(yellow, (yellow.shape[0], yellow.shape[1], yellow.shape[2], 1))
+    # yellow = np.reshape(yellow, (yellow.shape[0], yellow.shape[1], yellow.shape[2], 1))
 
     train = train/train.max()
     blue = blue/blue.max()
@@ -68,19 +68,19 @@ def train():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, op[:,:,:,0]) + tf.losses.mean_squared_error(yellow, op[:,:,:,1])
+    loss = tf.losses.mean_squared_error(y_blue, op[:,:,:,0]) + tf.losses.mean_squared_error(y_yellow, op[:,:,:,1])
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        
+
         for ep in range(100):
             # train = train[np.random.permutation(train.shape[0])]
             # blue = blue[np.random.permutation(blue.shape[0])]
@@ -105,7 +105,7 @@ def train():
                                              X: test,
                                              y_blue: bluetest,
                                              y_yellow: yellowtest
-                                         }) 
+                                         })
                 logger.info(f'epoch {ep} batch {idx} training loss {train_loss} test loss {test_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
