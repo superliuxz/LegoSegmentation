@@ -87,7 +87,7 @@ def train():
 
             idx = 0
             batch_size = 100
-            while idx < len(train.shape[0]):
+            while idx < train.shape[0]:
                 train_data = train[idx:idx+batch_size]
                 blue_data = blue[idx:idx+batch_size]
                 yellow_data = yellow[idx:idx+batch_size]
