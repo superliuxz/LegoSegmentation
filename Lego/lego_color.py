@@ -35,7 +35,6 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
-    # blue = np.reshape(blue, (blue.shape[0], blue.shape[1], blue.shape[2], 1))
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -44,7 +43,6 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
-    # yellow = np.reshape(yellow, (yellow.shape[0], yellow.shape[1], yellow.shape[2], 1))
 
     train = train/train.max()
     blue = blue/blue.max()
@@ -122,9 +120,7 @@ def plot():
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], [-1, op.shape[1], op.shape[2]])) + \
-            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], [-1, op.shape[1], op.shape[2]]))
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
+    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_yellow, op[:, :, :, 1])
 
     saver = tf.train.Saver()
 
