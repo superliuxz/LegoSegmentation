@@ -35,6 +35,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
+    blue = np.reshape(blue, blue.shape[:-1])
 
     yellow = []
     with tarfile.open('yellow.tar.xz') as tar:
@@ -43,6 +44,7 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             yellow.append(img)
     yellow = np.array(yellow)
+    yellow = np.reshape(yellow, yellow.shape[:-1])
 
     train = train/train.max()
     blue = blue/blue.max()
@@ -66,13 +68,12 @@ def train():
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
+    y_blue = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_blue')
+    y_yellow = tf.placeholder(tf.float32, [None, 192, 256, 1], name='y_yellow')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(blue, tf.reshape(op[:,:,:,0], [-1, op.shape[1], op.shape[2]])) + \
-            tf.losses.mean_squared_error(yellow, tf.reshape(op[:,:,:,1], [-1, op.shape[1], op.shape[2]]))
+    loss = tf.losses.mean_squared_error(blue, op[:,:,:,0]) + tf.losses.mean_squared_error(yellow, op[:,:,:,1])
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -81,9 +82,9 @@ def train():
         sess.run(tf.global_variables_initializer())
         
         for ep in range(100):
-            train = train[np.random.permutation(train.shape[0])]
-            blue = blue[np.random.permutation(blue.shape[0])]
-            yellow = yellow[np.random.permutation(yellow.shape[0])]
+            # train = train[np.random.permutation(train.shape[0])]
+            # blue = blue[np.random.permutation(blue.shape[0])]
+            # yellow = yellow[np.random.permutation(yellow.shape[0])]
 
             idx = 0
             batch_size = 100
