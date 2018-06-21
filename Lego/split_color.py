@@ -15,6 +15,9 @@ for i in range(5000):
 	yellow[(img==[255, 215, 0]).all(axis=-1)] = 0
 	yellow[(img!=[255, 215, 0]).all(axis=-1)] = 255
 
+	blue = cv2.cvtColor(blue, cv2.COLOR_RGB2GRAY)
+	yellow = cv2.cvtColor(yellow, cv2.COLOR_RGB2GRAY)
+
 	cv2.imwrite(f'{i+1:04d}b.png', blue)
 	cv2.imwrite(f'{i+1:04d}y.png', yellow)
 print('done')
