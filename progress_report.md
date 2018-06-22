@@ -192,7 +192,9 @@
   - after a long discussion, i can conclude that the position detection is working
   - now have to focus on color detection
 - [ ] for the above model, save the middle layer as pictures
-  - [ ] generate synthetic data to test the model first
-  - [ ] for each picture, use a paint tool to annotate brick with their corresponding color
+  - [x] generate synthetic data to test the model first
+  - [x] for each picture, use a paint tool to annotate brick with their corresponding color
     - i.e., if a picture has blue and red bricks in, generate two pictures, first with red annotation, second with red annotation.
-  - [ ] then train on a very simple model: with only one conv layer, 1x1x2 
+  - [x] then train on a very simple model: with only one conv layer, 1x1x2 
+  - the above works, but i generated the input image wrong. ha to redo it :(
+
