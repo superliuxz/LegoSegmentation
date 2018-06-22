@@ -50,6 +50,7 @@ def load_data():
 
     return train[100:], blue[100:], yellow[100:], train[:100], blue[:100], yellow[:100]
 
+
 def build_model(X):
     conv1 = tf.layers.conv2d(X, 2,
                              kernel_size=(3, 3),
@@ -58,6 +59,7 @@ def build_model(X):
                              activation=tf.nn.relu,
                              name='conv1')
     return conv1
+
 
 def train():
     model_name = "color_test"
@@ -71,7 +73,7 @@ def train():
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(y_blue, op[:,:,:,0]) + tf.losses.mean_squared_error(y_yellow, op[:,:,:,1])
+    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_yellow, op[:, :, :, 1])
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -79,10 +81,11 @@ def train():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for ep in range(100):
-            # train = train[np.random.permutation(train.shape[0])]
-            # blue = blue[np.random.permutation(blue.shape[0])]
-            # yellow = yellow[np.random.permutation(yellow.shape[0])]
+        for ep in range(1000):
+            # seq = np.random.permutation(train.shape[0])
+            # train = train[seq]
+            # blue = blue[seq]
+            # yellow = yellow[seq]
 
             idx = 0
             batch_size = 100
@@ -107,6 +110,7 @@ def train():
                 logger.info(f'epoch {ep} batch {idx} training loss {train_loss} test loss {test_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
+
 
 def plot():
     model_name = "color_test"
@@ -148,5 +152,5 @@ def plot():
 
 
 if __name__ == '__main__':
-    # train()
+    #train()
     plot()
