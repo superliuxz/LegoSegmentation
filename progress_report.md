@@ -194,7 +194,7 @@
   - works
   - after a long discussion, i can conclude that the position detection is working
   - now have to focus on color detection
-- [ ] for the above model, save the middle layer as pictures
+- [x] for the above model, save the middle layer as pictures
   - [x] generate synthetic data to test the model first
   - [x] for each picture, use a paint tool to annotate brick with their corresponding color
     - i.e., if a picture has blue and red bricks in, generate two pictures, first with red annotation, second with red annotation.
@@ -203,9 +203,16 @@
 ----
 **Week 7** (June 24 ~ June 30)
 - playing with a simple model that has 1~2 convolution layer, I am hoping to use some synthetic image with blue and yellow to train the network to identify the color
-  - [x] works
+  - [x] works, also works with Gaussian blur. 
   - **LESSION**: never use activation on the final output layer 
   - but soon as I change the color synthetic image to grayscale, the network stuggle to perform
 - new idea:
   - [ ] configure the network to output three channels, and do a softmax crx entropy on blue, yellow and background
+    - [ ] need to generate the background ground truth
+      - [ ] merge all the scripts used to generate the data. too many short scripts.
 ----
+**Week 8** (July 1 ~ July 7)
+- four interviews on July 9th and 10th. need to study.
+----
+**Week 9** (July 8 ~ July 14)
+- pick up from week 7.
