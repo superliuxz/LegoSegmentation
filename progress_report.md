@@ -178,7 +178,31 @@
 **Week 5** (June 10 ~ June 16)
 - things mentioned in the previous and previous previous week
   - autoencoder is working but the middle two channels are not splitting the red and blue
-    - [ ] to solve, need to use another loss function the guide the middle two layers to identify the red and blue
+    - [x] to solve, need to use another loss function the guide the middle two layers to identify the red and blue
+      - [x] autoencoding is still working but the middle layers are not. fix it.
+      - two layers are not doing too good for the testing images...
+      - the two channels in the middle are not splitting the red and blue
+    - back to the previous autoencoder model that is not splitting the middle two channels for red and blue (two generic channels in the middle), i discovered that the two channels are actually identifying the board and the background.
+      - [ ] use the channel that is the board to split red and blue
+  - use 120 images and only one channel 
 - progress has been slow down.
   - might have interviews comming up which will further slow down the progress
-
+**Week 6** (June 17 ~ June 23)
+- back from the interview
+- keep working on the two channel models, with all 120 real images, and only one channel in the middle
+  - works
+  - after a long discussion, i can conclude that the position detection is working
+  - now have to focus on color detection
+- [ ] for the above model, save the middle layer as pictures
+  - [x] generate synthetic data to test the model first
+  - [x] for each picture, use a paint tool to annotate brick with their corresponding color
+    - i.e., if a picture has blue and red bricks in, generate two pictures, first with red annotation, second with red annotation.
+  - [x] then train on a very simple model: with only one conv layer, 1x1x2 
+  - the above works, but i generated the input image wrong. ha to redo it :(
+**Week 7** (June 24 ~ June 30)
+- playing with a simple model that has 1~2 convolution layer, I am hoping to use some synthetic image with blue and yellow to train the network to identify the color
+  - [x] works
+  - **LESSION**: never use activation on the final output layer 
+  - but soon as I change the color synthetic image to grayscale, the network stuggle to perform
+- new idea:
+  - [ ] configure the network to output three channels, and do a softmax crx entropy on blue, yellow and background
