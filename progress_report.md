@@ -216,3 +216,14 @@
 ----
 **Week 9** (July 8 ~ July 14)
 - pick up from week 7.
+- Focus on:
+  - Crop the board out of the picture, then automatically label each superpixel as brick of interest.
+- Talked to Kwang. He suggested using Canny edge detection to crop the board out of the picture.
+- Canny + Hough is working. Now I have to crop the image bounded by the line.
+  - [x] working, but the Canny detection is very unstable. change in the lighting condition will break the detection completely.
+  - "Let's not worry about that. Let's start to label the images that you have now."
+- Since I have cropping, I need to be able to ID the bricks from cropped board.
+  - use sliding window approach to automatically label each stud of the board.
+  - Do this in HSV space, as it is more robust.
+----
+**Week 10** (July 15 ~ July 21)
