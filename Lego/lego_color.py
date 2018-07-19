@@ -53,7 +53,7 @@ def load_data():
     train = train[seq]
     labels = labels[seq]
 
-    return train[0], labels[0], train[1:], labels[1:]
+    return train[1:], labels[1:], train[0], labels[0]
 
 
 def build_model(X):
