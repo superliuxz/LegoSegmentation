@@ -1,9 +1,7 @@
 import cv2
 import logging
 import os
-from PIL import Image
 import tarfile
-from typing import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,36 +18,34 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 def load_data():
     train = []
-    with tarfile.open('royalblue_khaki.gray_board.tar.xz') as tar:
+    with tarfile.open('18.rb.300x150.txz') as tar:
         for f in tar.getmembers():
             bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
-            img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.imdecode(bimg, flags=cv2.IMREAD_ANYCOLOR)
             train.append(img)
     train = np.array(train)
-    train = np.reshape(train, [-1, 192, 256, 1])
 
     blue = []
-    with tarfile.open('royalblue.tar.xz') as tar:
+    with tarfile.open('18.blue.label.300x150.txz') as tar:
         for f in tar.getmembers():
             bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
 
-    yellow = []
-    with tarfile.open('khaki.tar.xz') as tar:
+    red = []
+    with tarfile.open('18.red.label.300x150.txz') as tar:
         for f in tar.getmembers():
             bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-            yellow.append(img)
-    yellow = np.array(yellow)
+            red.append(img)
+    red = np.array(red)
 
     train = train/train.max()
     blue = blue/blue.max()
-    yellow = yellow/yellow.max()
+    red = red/red.max()
 
-    return train[100:], blue[100:], yellow[100:], train[:100], blue[:100], yellow[:100]
+    return train, blue, red
 
 
 def build_model(X):
@@ -65,17 +61,17 @@ def build_model(X):
 
 def train():
     model_name = "color_test"
-    train, blue, yellow, test, bluetest, yellowtest = load_data()
+    train, blue, red = load_data()
 
     tf.reset_default_graph()
 
-    X = tf.placeholder(tf.float32, [None, 192, 256, 1], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
+    X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
+    y_blue = tf.placeholder(tf.float32, [None, 150, 300], name='y_blue')
+    y_red = tf.placeholder(tf.float32, [None, 150, 300], name='y_red')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_yellow, op[:, :, :, 1])
+    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_red, op[:, :, :, 1])
     train_op = tf.train.AdadeltaOptimizer(10**-1).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -83,50 +79,38 @@ def train():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for ep in range(500):
-            # seq = np.random.permutation(train.shape[0])
-            # train = train[seq]
-            # blue = blue[seq]
-            # yellow = yellow[seq]
+        for ep in range(1000):
+            seq = np.random.permutation(train.shape[0])
+            train = train[seq]
+            blue = blue[seq]
+            red = red[seq]
 
-            idx = 0
-            batch_size = 100
-            while idx < train.shape[0]:
-                train_data = train[idx:idx+batch_size]
-                blue_data = blue[idx:idx+batch_size]
-                yellow_data = yellow[idx:idx+batch_size]
+            train_loss, *_ = sess.run([loss, train_op],
+                                      feed_dict={
+                                          X: train,
+                                          y_blue: blue,
+                                          y_red: red
+                                      })
 
-                train_loss, *_ = sess.run([loss, train_op],
-                                          feed_dict={
-                                              X: train_data,
-                                              y_blue: blue_data,
-                                              y_yellow: yellow_data
-                                          })
-                idx+=batch_size
-                test_loss, *_ = sess.run([loss, train_op],
-                                         feed_dict={
-                                             X: test,
-                                             y_blue: bluetest,
-                                             y_yellow: yellowtest
-                                         })
-                logger.info(f'epoch {ep} batch {idx} training loss {train_loss} test loss {test_loss}')
+            logger.info(f'epoch {ep} training loss {train_loss}')
 
-        saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
+        saver.save(sess, os.path.join(os.getcwd(), model_name),
+                   latest_filename=f'{model_name}.latest.ckpt')
 
 
 def plot():
     model_name = "color_test"
-    train, blue, yellow, test, bluetest, yellowtest = load_data()
+    train, blue, red = load_data()
 
     tf.reset_default_graph()
 
     X = tf.placeholder(tf.float32, [None, 192, 256, 1], name='X')
     y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
-    y_yellow = tf.placeholder(tf.float32, [None, 192, 256], name='y_yellow')
+    y_red = tf.placeholder(tf.float32, [None, 192, 256], name='y_red')
 
     op = build_model(X)
 
-    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_yellow, op[:, :, :, 1])
+    loss = tf.losses.mean_squared_error(y_blue, op[:, :, :, 0]) + tf.losses.mean_squared_error(y_red, op[:, :, :, 1])
 
     saver = tf.train.Saver()
 
@@ -140,7 +124,7 @@ def plot():
                                             feed_dict={
                                                 X: test[idx:idx+1],
                                                 y_blue: bluetest[idx:idx+1],
-                                                y_yellow: yellowtest[idx:idx+1]
+                                                y_red: yellowtest[idx:idx+1]
                                             })
         logger.info(f'test loss {test_loss}')
         # plt.figure()
@@ -156,5 +140,5 @@ def plot():
 
 
 if __name__ == '__main__':
-    # train()
-    plot()
+    train()
+    # plot()
