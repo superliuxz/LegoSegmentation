@@ -138,6 +138,7 @@ def plot():
     plt.subplot(1, 4, 3)
     layer2 = conv_layer[:, :, :, 1].reshape(conv_layer.shape[1], conv_layer.shape[2])
     plt.imshow(layer2, cmap='binary')
+    plt.subplot(1, 4, 4)
     layer3 = conv_layer[:, :, :, 2].reshape(conv_layer.shape[1], conv_layer.shape[2])
     plt.imshow(layer3, cmap='binary')
     plt.show()
