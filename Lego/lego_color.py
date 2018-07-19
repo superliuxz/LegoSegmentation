@@ -90,7 +90,7 @@ def train():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for ep in range(1000):
+        for ep in range(2000):
             seq = np.random.permutation(train.shape[0])
             train = train[seq]
             blue = blue[seq]
@@ -124,13 +124,13 @@ def train():
 
 def plot():
     model_name = "color_test"
-    train, blue, red = load_data()
+    train, blue, red, test, blue_test, red_test = load_data()
 
     tf.reset_default_graph()
 
-    X = tf.placeholder(tf.float32, [None, 192, 256, 1], name='X')
-    y_blue = tf.placeholder(tf.float32, [None, 192, 256], name='y_blue')
-    y_red = tf.placeholder(tf.float32, [None, 192, 256], name='y_red')
+    X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
+    y_blue = tf.placeholder(tf.float32, [None, 150, 300], name='y_blue')
+    y_red = tf.placeholder(tf.float32, [None, 150, 300], name='y_red')
 
     op = build_model(X)
 
@@ -140,15 +140,15 @@ def plot():
 
     plt.figure()
     for i in range(6):
-        idx = np.random.randint(0, test.shape[0])
+        idx = i
 
         with tf.Session() as sess:
             saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
             test_loss, conv_layer = sess.run([loss, op],
                                             feed_dict={
                                                 X: test[idx:idx+1],
-                                                y_blue: bluetest[idx:idx+1],
-                                                y_red: yellowtest[idx:idx+1]
+                                                y_blue: blue_test[idx:idx+1],
+                                                y_red: red_test[idx:idx+1]
                                             })
         logger.info(f'test loss {test_loss}')
         # plt.figure()
@@ -165,4 +165,4 @@ def plot():
 
 if __name__ == '__main__':
     train()
-    # plot()
+    plot()
