@@ -153,7 +153,7 @@ def plot():
         logger.info(f'test loss {test_loss}')
         # plt.figure()
         plt.subplot(6, 3, 1+3*i)
-        plt.imshow(test[idx:idx + 1])
+        plt.imshow(test[idx:idx + 1].reshape(test.shape[1], test.shape[2], 3))
         plt.subplot(6, 3, 2+3*i)
         layer1 = conv_layer[:, :, :, 0].reshape(conv_layer.shape[1], conv_layer.shape[2])
         plt.imshow(layer1, cmap='binary')
