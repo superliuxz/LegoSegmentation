@@ -230,3 +230,6 @@
 - Use OpenCV's superpixel to auto-label each board picture.
   - Superpixel of the polygon ends up predict many polygons that are connected. Very difficult to work with. Switch to the pre-defined superpixel approach.
   - 10x10 superpixel is working but not as accurate. Fabrizio suggested starting training with the slightly mislabeled ground truth and see what happens.
+- Run the simple color splitting network on the auto annotated images. Results are good.
+  - Next, using the cross entropy as loss function instead of continuous L2.
+  - Also, more data.
