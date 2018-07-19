@@ -105,6 +105,8 @@ def train():
 def plot():
     model_name = "color_test"
     train, label, test, test_label = load_data()
+    test = np.reshape(test, (-1, *test.shape))
+    test_label = np.reshape(test_label, (-1, *test_label.shape))
 
     tf.reset_default_graph()
 
