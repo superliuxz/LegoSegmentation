@@ -24,6 +24,8 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_ANYCOLOR)
             train.append(img)
     train = np.array(train)
+    train_ = np.fliplr(train)
+    train = np.vstack((train, train_))
 
     blue = []
     with tarfile.open('18.blue.label.300x150.txz') as tar:
@@ -32,6 +34,8 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             blue.append(img)
     blue = np.array(blue)
+    blue_ = np.fliplr(blue)
+    blue = np.vstack((blue, blue_))
 
     red = []
     with tarfile.open('18.red.label.300x150.txz') as tar:
@@ -40,12 +44,19 @@ def load_data():
             img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
             red.append(img)
     red = np.array(red)
+    red_ = np.fliplr(red)
+    red = np.vstack((red, red_))
 
     train = train/train.max()
     blue = blue/blue.max()
     red = red/red.max()
 
-    return train, blue, red
+    seq = np.random.permutation(train.shape[0])
+    train = train[seq]
+    red = red[seq]
+    blue = blue[seq]
+
+    return train[6:], blue[6:], red[6:], train[:6], blue[:6], red[:6]
 
 
 def build_model(X):
@@ -61,7 +72,7 @@ def build_model(X):
 
 def train():
     model_name = "color_test"
-    train, blue, red = load_data()
+    train, blue, red, test, blue_test, red_test = load_data()
 
     tf.reset_default_graph()
 
@@ -85,14 +96,27 @@ def train():
             blue = blue[seq]
             red = red[seq]
 
-            train_loss, *_ = sess.run([loss, train_op],
-                                      feed_dict={
-                                          X: train,
-                                          y_blue: blue,
-                                          y_red: red
-                                      })
+            idx = 0
+            batch_size = 6
 
-            logger.info(f'epoch {ep} training loss {train_loss}')
+            while idx<train.shape[0]:
+                train_loss, *_ = sess.run([loss, train_op],
+                                          feed_dict={
+                                              X: train[idx:idx+batch_size],
+                                              y_blue: blue[idx:idx+batch_size],
+                                              y_red: red[idx:idx+batch_size]
+                                          })
+
+                test_loss, *_ = sess.run([loss, train_op],
+                                          feed_dict={
+                                              X: test,
+                                              y_blue: blue_test,
+                                              y_red: red_test
+                                          })
+
+                logger.info(f'epoch {ep} training loss {train_loss} testing loss {test_loss}')
+
+                idx+=batch_size
 
         saver.save(sess, os.path.join(os.getcwd(), model_name),
                    latest_filename=f'{model_name}.latest.ckpt')
