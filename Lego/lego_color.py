@@ -123,24 +123,24 @@ def plot():
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
-        test_loss, conv_layer = sess.run([loss, op],
+        test_loss, conv_layer, prediction = sess.run([loss, op, tf.argmax(op, axis=-1)],
                                         feed_dict={
                                             X: test,
                                             y_label: test_label
                                         })
     logger.info(f'test loss {test_loss}')
     # plt.figure()
-    plt.subplot(1, 4, 1)
+    plt.subplot(1, 2, 1)
     plt.imshow(test.reshape(test.shape[1], test.shape[2], 3))
-    plt.subplot(1, 4, 2)
-    layer1 = conv_layer[:, :, :, 0].reshape(conv_layer.shape[1], conv_layer.shape[2])
-    plt.imshow(layer1, cmap='binary')
-    plt.subplot(1, 4, 3)
-    layer2 = conv_layer[:, :, :, 1].reshape(conv_layer.shape[1], conv_layer.shape[2])
-    plt.imshow(layer2, cmap='binary')
-    plt.subplot(1, 4, 4)
-    layer3 = conv_layer[:, :, :, 2].reshape(conv_layer.shape[1], conv_layer.shape[2])
-    plt.imshow(layer3, cmap='binary')
+
+    pred_pic = np.zeros((150, 300, 3))
+    pred_pic[prediction == 0] = [255, 0, 0]
+    pred_pic[prediction == 1] = [0, 255, 0]
+    pred_pic[prediction == 2] = [255, 255, 255]
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(pred_pic)
+
     plt.show()
 
 
