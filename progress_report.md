@@ -233,3 +233,6 @@
 - Run the simple color splitting network on the auto annotated images. Results are good.
   - Next, using the cross entropy as loss function instead of continuous L2.
   - Also, more data.
+- Good stuff. Every thing just works (on the 1x1 simple network used to split blue, red and the board).
+- [ ] now, put the 1x1 network into the auto encoder.
+  - need to regen the labels with 30x15 size, and adjust the auto encoder to have a middle layer of 30x15
