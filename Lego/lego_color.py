@@ -25,25 +25,6 @@ def load_data():
             train.append(img)
     train = np.array(train)
 
-    # blue = []
-    # with tarfile.open('18.blue.label.300x150.txz') as tar:
-    #     for f in tar.getmembers():
-    #         bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
-    #         img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-    #         blue.append(img)
-    # blue = np.array(blue)
-    # blue_ = np.fliplr(blue)
-    # blue = np.vstack((blue, blue_))
-    #
-    # red = []
-    # with tarfile.open('18.red.label.300x150.txz') as tar:
-    #     for f in tar.getmembers():
-    #         bimg = np.array(bytearray(tar.extractfile(f).read()), dtype=np.uint8)
-    #         img = cv2.imdecode(bimg, flags=cv2.IMREAD_GRAYSCALE)
-    #         red.append(img)
-    # red = np.array(red)
-    # red_ = np.fliplr(red)
-    # red = np.vstack((red, red_))
 
     labels = np.loadtxt('18.rb.300x150.label.txt', delimiter=',', dtype=np.int8)
     labels = np.reshape(labels, (-1, 150, 300, 3))
@@ -62,7 +43,6 @@ def build_model(X):
                              kernel_size=(1, 1),
                              strides=(1, 1),
                              padding='SAME',
-                             # activation=tf.nn.relu,
                              name='conv1')
     return conv1
 
@@ -129,21 +109,15 @@ def plot():
                                             y_label: test_label
                                         })
     logger.info(f'test loss {test_loss}')
-    # plt.figure()
+
     plt.subplot(1, 2, 1)
     plt.imshow(test.reshape(test.shape[1], test.shape[2], 3))
-
-    # pred_pic = np.zeros((150, 300, 3))
-    # pred_pic[prediction == 0] = [255, 0, 0]
-    # pred_pic[prediction == 1] = [0, 255, 0]
-    # pred_pic[prediction == 2] = [255, 255, 255]
-
     plt.subplot(1, 2, 2)
-    plt.imshow(prediction.reshape((150, 300, 3)))
+    plt.imshow(prediction.reshape((150, 300)))
 
     plt.show()
 
 
 if __name__ == '__main__':
     train()
-    # plot()
+    plot()
