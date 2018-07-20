@@ -139,7 +139,7 @@ def plot():
     # pred_pic[prediction == 2] = [255, 255, 255]
 
     plt.subplot(1, 2, 2)
-    plt.imshow(prediction)
+    plt.imshow(prediction.reshape((150, 300, 3)))
 
     plt.show()
 
