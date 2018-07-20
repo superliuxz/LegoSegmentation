@@ -51,25 +51,14 @@ def build_model(X):
                              padding='SAME',
                              activation=tf.nn.relu,
                              name='conv3')
-    maxpool3 = tf.layers.max_pooling2d(conv3,
-                                       pool_size=(2, 2),
-                                       strides=(1, 1),
-                                       padding='SAME',
-                                       name='pool3')
     # simple 1x1 network
-    conv0_ = tf.layers.conv2d(maxpool3, 16,
-                             kernel_size=(3, 3),
-                             strides=(1, 1),
-                             padding='SAME',
-                             activation=tf.nn.relu,
-                             name='1x1_conv0')
-    conv1_ = tf.layers.conv2d(conv0_, 3,
+    conv1_ = tf.layers.conv2d(conv3, 3,
                              kernel_size=(1, 1),
                              strides=(1, 1),
                              padding='SAME',
                              name='1x1_conv1')
     # decoder
-    deconv1 = tf.layers.conv2d_transpose(maxpool3, 32,
+    deconv1 = tf.layers.conv2d_transpose(conv3, 32,
                                          kernel_size=(3, 3),
                                          strides=(1, 1),
                                          padding='SAME',
@@ -87,7 +76,7 @@ def build_model(X):
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv3')
-    return conv1_, deconv3
+    return conv3, conv1_, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
@@ -128,7 +117,7 @@ def train():
     X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
     y = tf.placeholder(tf.float32, [None, 15, 30, 3], name='y_label')
 
-    encode_op, decode_op = build_model(X)
+    middle, encode_op, decode_op = build_model(X)
 
     l2_loss = tf.losses.mean_squared_error(X, decode_op)
     crx_entr_loss = tf.reduce_mean(
@@ -145,13 +134,13 @@ def train():
         for i in range(5000):
 
 
-            train_loss, *_ = sess.run([loss, train_op],
+            train_l2, train_crx, *_ = sess.run([l2_loss, crx_entr_loss, train_op],
                                       feed_dict={
                                           X: train_data,
                                           y: train_label
                                       })
 
-            logger.info(f'epoch {i} training loss {train_loss}')
+            logger.info(f'epoch {i} training l2 loss {train_l2} training crx entr loss {train_crx}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
@@ -170,7 +159,7 @@ def plot():
     X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
     y_label = tf.placeholder(tf.float32, [None, 15, 30, 3], name='y_label')
 
-    encode_op, decode_op = build_model(X)
+    middle, encode_op, decode_op = build_model(X)
 
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_label, logits=encode_op))
 
@@ -180,16 +169,18 @@ def plot():
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
-        test_loss, conv_layer, prediction = sess.run([loss, encode_op, tf.argmax(encode_op, axis=-1)],
+        test_loss, conv_layer, prediction = sess.run([loss, middle, tf.argmax(encode_op, axis=-1)],
                                         feed_dict={
                                             X: test_data,
                                             y_label: test_label
                                         })
     logger.info(f'test loss {test_loss}')
 
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.imshow(test_data.reshape(test_data.shape[1], test_data.shape[2], 3))
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
+    plt.imshow(conv_layer.reshape((15, 30)), cmap='binary')
+    plt.subplot(1, 3, 3)
     plt.imshow(prediction.reshape((15, 30)))
 
     plt.show()
@@ -290,6 +281,7 @@ def save_midddle_to_file():
 
 if __name__ == '__main__':
     train()
+    plot()
     # test_encode()
     # test_decode()
     # save_midddle_to_file()
