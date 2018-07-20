@@ -133,13 +133,13 @@ def plot():
     plt.subplot(1, 2, 1)
     plt.imshow(test.reshape(test.shape[1], test.shape[2], 3))
 
-    pred_pic = np.zeros((150, 300, 3))
-    pred_pic[prediction == 0] = [255, 0, 0]
-    pred_pic[prediction == 1] = [0, 255, 0]
-    pred_pic[prediction == 2] = [255, 255, 255]
+    # pred_pic = np.zeros((150, 300, 3))
+    # pred_pic[prediction == 0] = [255, 0, 0]
+    # pred_pic[prediction == 1] = [0, 255, 0]
+    # pred_pic[prediction == 2] = [255, 255, 255]
 
     plt.subplot(1, 2, 2)
-    plt.imshow(pred_pic)
+    plt.imshow(prediction)
 
     plt.show()
 
