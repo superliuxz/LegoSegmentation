@@ -102,7 +102,7 @@ def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, 
     train_data = np.array(train)
 
     train_label = np.genfromtxt(label, delimiter=',')
-    train_label = np.reshape(train_label, (-1, 150, 300, 3))
+    train_label = np.reshape(train_label, (-1, 15, 30, 3))
 
     logger.info(f'normalize data...')
     train_data = normalize_func(train_data)
@@ -127,7 +127,7 @@ def train():
                                                                normalize_func=lambda x: x/x.max())
 
     X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
-    y = tf.placeholder(tf.float32, [None, 150, 300, 3], name='y_label')
+    y = tf.placeholder(tf.float32, [None, 15, 30, 3], name='y_label')
 
     encode_op, decode_op = build_model(X)
 
@@ -135,8 +135,8 @@ def train():
     crx_entr_loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=encode_op)
     )
-
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss+crx_entr_loss)
+    loss = l2_loss+crx_entr_loss
+    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
@@ -146,7 +146,7 @@ def train():
         for i in range(5000):
 
 
-            train_loss, *_ = sess.run([train_op],
+            train_loss, *_ = sess.run([loss, train_op],
                                       feed_dict={
                                           X: train_data,
                                           y: train_label
