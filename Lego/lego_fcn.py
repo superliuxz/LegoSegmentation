@@ -31,7 +31,7 @@ def build_model(X):
                              name='conv1')
     maxpool1 = tf.layers.max_pooling2d(conv1,
                                        pool_size=(2, 2),
-                                       strides=(2, 2),
+                                       strides=(5, 5),
                                        padding='SAME',
                                        name='pool1')
     conv2 = tf.layers.conv2d(maxpool1, 32,
@@ -53,24 +53,26 @@ def build_model(X):
                              name='conv3')
     maxpool3 = tf.layers.max_pooling2d(conv3,
                                        pool_size=(2, 2),
-                                       strides=(3, 2),
+                                       strides=(1, 1),
                                        padding='SAME',
                                        name='pool3')
-    flatten = tf.concat([tf.reshape(maxpool3[:,:,:,0], shape=(-1, 512)), tf.reshape(maxpool3[:,:,:,1], shape=(-1, 512))],
-                        axis=1)
+    # simple 1x1 network
+    print(maxpool3.shape)
+    conv0_ = tf.layers.conv2d(maxpool3, 16,
+                             kernel_size=(3, 3),
+                             strides=(1, 1),
+                             padding='SAME',
+                             activation=tf.nn.relu,
+                             name='1x1_conv0')
+    conv1_ = tf.layers.conv2d(conv0_, 3,
+                             kernel_size=(1, 1),
+                             strides=(1, 1),
+                             padding='SAME',
+                             name='1x1_conv1')
     # decoder
-    deconv0 = tf.layers.conv2d_transpose(maxpool3, 2,
+    deconv1 = tf.layers.conv2d_transpose(maxpool3, 32,
                                          kernel_size=(3, 3),
-                                         strides=(3, 2),
-                                         padding='SAME',
-                                         activation=tf.nn.relu,
-                                         name='deconv0')
-    deconv0 = tf.concat([deconv0, conv3],
-                        axis=-1,
-                        name='deconv0_concat')
-    deconv1 = tf.layers.conv2d_transpose(deconv0, 32,
-                                         kernel_size=(3, 3),
-                                         strides=(2, 2),
+                                         strides=(1, 1),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv1')
@@ -82,11 +84,11 @@ def build_model(X):
                                          name='deconv2')
     deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
                                          kernel_size=(3, 3),
-                                         strides=(1, 1),
+                                         strides=(5, 5),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv3')
-    return flatten, deconv3
+    return conv1_, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
@@ -98,41 +100,42 @@ def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             train.append(img)
     train_data = np.array(train)
+
     train_label = np.genfromtxt(label, delimiter=',')
+    train_label = np.reshape(train_label, (-1, 150, 300, 3))
 
     logger.info(f'normalize data...')
     train_data = normalize_func(train_data)
     logger.info(f'done')
 
-    #idx = train_data.shape[0] // 5
-    #test_data = train_data[:idx]
-    #train_data = train_data[idx:]
-
     logger.info(f'training data: {train_data.shape}')
+    logger.info(f'training label: {train_label.shape}')
 
-    # return train_data, test_data
-    return train_data
+    seq = np.random.permutation(train_data.shape[0])
+    train_data = train_data[seq]
+    train_label = train_label[seq]
+
+    return train_data[1:], train_label[1:], train_data[0], train_label[0]
 
 
-def train(mode: str):
+def train():
     tf.reset_default_graph()
     model_name = 'lego_fcn'
 
-    # train_data, test_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x/x.max())
-    # train_data = load_data(dataset='20.rb.256x192.tar.xz', normalize_func=lambda x: x / x.max())
-    train_data = load_data(dataset='100.by.256x192.tar.xz', normalize_func=lambda x: x/x.max())
-    # train_data = np.vstack((train_data, train_data2))
+    train_data, train_label, test_data, test_label = load_data(dataset='18.rb.300x150.txz',
+                                                               label='18.rb.300x150.label.txt',
+                                                               normalize_func=lambda x: x/x.max())
 
-    X = tf.placeholder(tf.float32, [None, 192, 256, 3], name='X')
-    y = tf.placeholder(tf.float32, [None, 1024], name='y')
+    X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
+    y = tf.placeholder(tf.float32, [None, 150, 300, 3], name='y_label')
+
     encode_op, decode_op = build_model(X)
 
     l2_loss = tf.losses.mean_squared_error(X, decode_op)
     crx_entr_loss = tf.reduce_mean(
-        tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=encode_op)
+        tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=encode_op)
     )
-    l2_train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss)
-    crx_entr_train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(crx_entr_loss)
+
     train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss+crx_entr_loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
@@ -141,23 +144,14 @@ def train(mode: str):
         sess.run(tf.global_variables_initializer())
 
         for i in range(5000):
-            train_data = train_data[np.random.permutation(train_data.shape[0])]
 
-            batch_idx = 0
-            batch_size = 20
-            while batch_idx < train_data.shape[0]:
-                X_ = train_data[batch_idx:batch_idx+batch_size]
 
-                train_loss, *_ = sess.run([loss, train_op],
-                                          feed_dict={
-                                              X: X_
-                                          })
-                batch_idx += batch_size
-                # test_loss, *_ = sess.run([loss, train_op],
-                #                          feed_dict={
-                #                             X: test_data
-                #                          })
-            #if i % 100 == 0:
+            train_loss, *_ = sess.run([train_op],
+                                      feed_dict={
+                                          X: train_data,
+                                          y: train_label
+                                      })
+
             logger.info(f'epoch {i} training loss {train_loss}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
@@ -258,7 +252,7 @@ def save_midddle_to_file():
 
 
 if __name__ == '__main__':
-    # train()
+    train()
     # test_encode()
     # test_decode()
-    save_midddle_to_file()
+    # save_midddle_to_file()
