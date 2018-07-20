@@ -57,7 +57,6 @@ def build_model(X):
                                        padding='SAME',
                                        name='pool3')
     # simple 1x1 network
-    print(maxpool3.shape)
     conv0_ = tf.layers.conv2d(maxpool3, 16,
                              kernel_size=(3, 3),
                              strides=(1, 1),
@@ -156,6 +155,44 @@ def train():
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
+def plot():
+    tf.reset_default_graph()
+    model_name = 'lego_fcn'
+
+    train_data, train_label, test_data, test_label = load_data(dataset='18.rb.300x150.txz',
+                                                               label='18.rb.300x150.label.txt',
+                                                               normalize_func=lambda x: x / x.max())
+    test_data = np.reshape(test_data, (-1, *test_data.shape))
+    test_label = np.reshape(test_label, (-1, *test_label.shape))
+
+    tf.reset_default_graph()
+
+    X = tf.placeholder(tf.float32, [None, 150, 300, 3], name='X')
+    y_label = tf.placeholder(tf.float32, [None, 15, 30, 3], name='y_label')
+
+    encode_op, decode_op = build_model(X)
+
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_label, logits=encode_op))
+
+    saver = tf.train.Saver()
+
+    plt.figure()
+
+    with tf.Session() as sess:
+        saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
+        test_loss, conv_layer, prediction = sess.run([loss, encode_op, tf.argmax(encode_op, axis=-1)],
+                                        feed_dict={
+                                            X: test_data,
+                                            y_label: test_label
+                                        })
+    logger.info(f'test loss {test_loss}')
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(test_data.reshape(test_data.shape[1], test_data.shape[2], 3))
+    plt.subplot(1, 2, 2)
+    plt.imshow(prediction.reshape((15, 30)))
+
+    plt.show()
 
 def test_encode():
     model_name = 'lego_fcn'
