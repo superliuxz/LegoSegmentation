@@ -17,13 +17,13 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)
 logger.addHandler(handler)
 tf.logging.set_verbosity(tf.logging.INFO)
 
-# np.random.seed(42)
-# tf.set_random_seed(42)
+np.random.seed(42)
+tf.set_random_seed(42)
 
 
 def build_model(X):
     # encoder
-    conv1 = tf.layers.conv2d(X, 16,
+    conv1 = tf.layers.conv2d(X, 1,
                              kernel_size=(3, 3),
                              strides=(1, 1),
                              padding='SAME',
@@ -31,10 +31,10 @@ def build_model(X):
                              name='conv1')
     maxpool1 = tf.layers.max_pooling2d(conv1,
                                        pool_size=(2, 2),
-                                       strides=(5, 5),
+                                       strides=(2, 2),
                                        padding='SAME',
                                        name='pool1')
-    conv2 = tf.layers.conv2d(maxpool1, 32,
+    conv2 = tf.layers.conv2d(maxpool1, 1,
                              kernel_size=(3, 3),
                              strides=(1, 1),
                              padding='SAME',
@@ -42,41 +42,41 @@ def build_model(X):
                              name='conv2')
     maxpool2 = tf.layers.max_pooling2d(conv2,
                                        pool_size=(2, 2),
-                                       strides=(2, 2),
+                                       strides=(3, 3),
                                        padding='SAME',
                                        name='pool2')
-    conv3 = tf.layers.conv2d(maxpool2, 1,
-                             kernel_size=(3, 3),
-                             strides=(1, 1),
-                             padding='SAME',
-                             activation=tf.nn.relu,
-                             name='conv3')
+    # conv3 = tf.layers.conv2d(maxpool2, 1,
+    #                          kernel_size=(3, 3),
+    #                          strides=(1, 1),
+    #                          padding='SAME',
+    #                          activation=tf.nn.relu,
+    #                          name='conv3')
     # simple 1x1 network
-    conv1_ = tf.layers.conv2d(conv3, 3,
+    conv1_ = tf.layers.conv2d(maxpool2, 3,
                              kernel_size=(1, 1),
                              strides=(1, 1),
                              padding='SAME',
                              name='1x1_conv1')
     # decoder
-    deconv1 = tf.layers.conv2d_transpose(conv3, 32,
+    # deconv1 = tf.layers.conv2d_transpose(conv3, 32,
+    #                                      kernel_size=(3, 3),
+    #                                      strides=(1, 1),
+    #                                      padding='SAME',
+    #                                      activation=tf.nn.relu,
+    #                                      name='deconv1')
+    deconv2 = tf.layers.conv2d_transpose(maxpool2, 1,
                                          kernel_size=(3, 3),
-                                         strides=(1, 1),
-                                         padding='SAME',
-                                         activation=tf.nn.relu,
-                                         name='deconv1')
-    deconv2 = tf.layers.conv2d_transpose(deconv1, 16,
-                                         kernel_size=(3, 3),
-                                         strides=(2, 2),
+                                         strides=(3, 3),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv2')
     deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
                                          kernel_size=(3, 3),
-                                         strides=(5, 5),
+                                         strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv3')
-    return conv3, conv1_, deconv3
+    return maxpool2, conv1_, deconv3
 
 
 def load_data(dataset: str, label: str, normalize_func: Callable) -> (np.array, np.array):
@@ -120,11 +120,11 @@ def train():
     middle, encode_op, decode_op = build_model(X)
 
     l2_loss = tf.losses.mean_squared_error(X, decode_op)
-    crx_entr_loss = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=encode_op)
-    )
-    loss = l2_loss+crx_entr_loss
-    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(loss)
+    # crx_entr_loss = tf.reduce_mean(
+    #     tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=encode_op)
+    # )
+    # loss = l2_loss+crx_entr_loss
+    train_op = tf.train.AdadeltaOptimizer(10**-2).minimize(l2_loss)
 
     saver = tf.train.Saver(save_relative_paths=True)
 
@@ -134,13 +134,13 @@ def train():
         for i in range(5000):
 
 
-            train_l2, train_crx, *_ = sess.run([l2_loss, crx_entr_loss, train_op],
+            train_l2, *_ = sess.run([l2_loss, train_op],
                                       feed_dict={
                                           X: train_data,
                                           y: train_label
                                       })
 
-            logger.info(f'epoch {i} training l2 loss {train_l2} training crx entr loss {train_crx}')
+            logger.info(f'epoch {i} training l2 loss {train_l2} training crx entr loss {1}')
 
         saver.save(sess, os.path.join(os.getcwd(), model_name), latest_filename=f'{model_name}.latest.ckpt')
 
@@ -161,7 +161,7 @@ def plot():
 
     middle, encode_op, decode_op = build_model(X)
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_label, logits=encode_op))
+    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_label, logits=encode_op))
 
     saver = tf.train.Saver()
 
@@ -169,19 +169,19 @@ def plot():
 
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint(os.getcwd(), latest_filename=f'{model_name}.latest.ckpt'))
-        test_loss, conv_layer, prediction = sess.run([loss, middle, tf.argmax(encode_op, axis=-1)],
+        conv_layer, prediction = sess.run([middle, tf.argmax(encode_op, axis=-1)],
                                         feed_dict={
                                             X: test_data,
                                             y_label: test_label
                                         })
-    logger.info(f'test loss {test_loss}')
+    # logger.info(f'test loss {test_loss}')
 
     plt.subplot(1, 3, 1)
     plt.imshow(test_data.reshape(test_data.shape[1], test_data.shape[2], 3))
     plt.subplot(1, 3, 2)
-    plt.imshow(conv_layer.reshape((15, 30)), cmap='binary')
+    plt.imshow(conv_layer.reshape((25, 50)), cmap='binary')
     plt.subplot(1, 3, 3)
-    plt.imshow(prediction.reshape((15, 30)))
+    plt.imshow(prediction.reshape((25, 50)))
 
     plt.show()
 

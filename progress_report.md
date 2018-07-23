@@ -238,3 +238,6 @@
   - need to regen the labels with 30x15 size, and adjust the auto encoder to have a middle layer of 30x15
   - middle no longer works nicely.
     - [ ] forget about 1x1 for now, get a nice middle layer. refer to the previous working auto encoder.
+----
+**Week 11** (July 22 ~ July 28)
+- Previously the FCN + 1x1 not work can also because I was down sampling too much.
