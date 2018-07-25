@@ -31,10 +31,10 @@ def build_model(X):
                              name='conv1')
     maxpool1 = tf.layers.max_pooling2d(conv1,
                                        pool_size=(2, 2),
-                                       strides=(5, 5),
+                                       strides=(2, 2),
                                        padding='SAME',
                                        name='pool1')
-    conv2 = tf.layers.conv2d(maxpool1, 32,
+    conv2 = tf.layers.conv2d(maxpool1, 64,
                              kernel_size=(3, 3),
                              strides=(1, 1),
                              padding='SAME',
@@ -42,7 +42,7 @@ def build_model(X):
                              name='conv2')
     maxpool2 = tf.layers.max_pooling2d(conv2,
                                        pool_size=(2, 2),
-                                       strides=(2, 2),
+                                       strides=(5, 5),
                                        padding='SAME',
                                        name='pool2')
     conv3 = tf.layers.conv2d(maxpool2, 1,
@@ -58,7 +58,7 @@ def build_model(X):
                              padding='SAME',
                              name='1x1_conv1')
     # decoder
-    deconv1 = tf.layers.conv2d_transpose(conv3, 32,
+    deconv1 = tf.layers.conv2d_transpose(conv3, 64,
                                          kernel_size=(3, 3),
                                          strides=(1, 1),
                                          padding='SAME',
@@ -66,13 +66,13 @@ def build_model(X):
                                          name='deconv1')
     deconv2 = tf.layers.conv2d_transpose(deconv1, 16,
                                          kernel_size=(3, 3),
-                                         strides=(2, 2),
+                                         strides=(5, 5),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv2')
     deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
                                          kernel_size=(3, 3),
-                                         strides=(5, 5),
+                                         strides=(2, 2),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv3')
