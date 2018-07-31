@@ -243,4 +243,8 @@
 - Previously the FCN + 1x1 not work can also because I was down sampling too much.
 - FCN is (sorta) now working. Need more training data however.
   - [ ] taking more pictures in similar light condition. Don't have to reshuffle all bricks. Move one brick at one time.
- 
+----
+**Week 11** (July 29 ~ Aug 4)
+- Last week of the direct study.
+- [ ] Finish up the report. **DUE AUG 5TH 24:00 PM**
+
