@@ -29,7 +29,7 @@ def build_model(X):
                              padding='SAME',
                              activation=tf.nn.relu,
                              name='conv1')
-    maxpool1 = tf.layers.max_pooling2d(conv1,
+    maxpool1 = tf.layers.average_pooling2d(conv1,
                                        pool_size=(2, 2),
                                        strides=(2, 2),
                                        padding='SAME',
@@ -40,7 +40,7 @@ def build_model(X):
                              padding='SAME',
                              activation=tf.nn.relu,
                              name='conv2')
-    maxpool2 = tf.layers.max_pooling2d(conv2,
+    maxpool2 = tf.layers.average_pooling2d(conv2,
                                        pool_size=(2, 2),
                                        strides=(5, 5),
                                        padding='SAME',
@@ -70,13 +70,14 @@ def build_model(X):
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv1')
-    deconv1 = tf.concat([deconv1, conv3], axis=-1)
+    deconv1 = tf.concat([deconv1, maxpool2], axis=-1)
     deconv2 = tf.layers.conv2d_transpose(deconv1, 16,
                                          kernel_size=(3, 3),
                                          strides=(5, 5),
                                          padding='SAME',
                                          activation=tf.nn.relu,
                                          name='deconv2')
+    deconv2 = tf.concat([deconv2, maxpool1], axis=-1)
     deconv3 = tf.layers.conv2d_transpose(deconv2, 3,
                                          kernel_size=(3, 3),
                                          strides=(2, 2),
