@@ -3,9 +3,11 @@ import numpy as np
 import math
 from collections import defaultdict
 
+SIZE = (1024, 768)
+
 def detect_edges(name):
     img = cv2.imread(name)
-    img = cv2.resize(img, (400, 300))
+    img = cv2.resize(img, SIZE, interpolation=cv2.INTER_LANCZOS4)
 
     eq = False
     if eq:
@@ -20,18 +22,18 @@ def detect_edges(name):
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     mid = np.median(gray)
 
-    ksize = 23
-    blurred = cv2.GaussianBlur(gray, (ksize, ksize), 5)
+    ksize = 91
+    blurred = cv2.GaussianBlur(gray, (ksize, ksize), 7)
 
-    cv2.imshow("Blurred", blurred)
-    cv2.waitKey()
+    # cv2.imshow("Blurred", blurred)
+    # cv2.waitKey()
 
     edges = cv2.Canny(blurred, 10, 50, apertureSize=3)
 
     cv2.imshow("Edges", edges)
     cv2.waitKey()
 
-    lines = cv2.HoughLines(image=edges, rho=1, theta=np.pi/180, threshold=62)
+    lines = cv2.HoughLines(image=edges, rho=1, theta=np.pi/180, threshold=120)
     # lines = cv2.HoughLinesP(image=edges, rho=1, theta=np.pi/180, threshold=80, minLineLength=100, maxLineGap=10)
 
     print_lines = True
@@ -104,14 +106,17 @@ def segmented_intersections(lines):
     return intersections
 
 def merge_points(points):
-    # print(points)
     merged = [points[0]]
     for i, p in enumerate(points):
         if i > 0:
             for m in merged:
                 dis = ((p[0]-m[0])**2+(p[1]-m[1])**2)**0.5
-                if dis < 10:
+                if dis < 25:
                     m[0], m[1] = (m[0]+p[0])//2, (m[1]+p[1])//2
+                    # m[0] = max(0, m[0])
+                    # m[0] = min(768-1, m[0])
+                    # m[1] = max(0, m[1])
+                    # m[1] = min(1024-1, m[1])
                     break
             else:
                 merged.append(p)
@@ -132,9 +137,9 @@ def sort_points(points: list):
     return np.array([top_left, btm_left, btm_right, top_right], dtype=np.int32)
 
 if __name__ == '__main__':
-    for i in range(18, 19):
-        print(f'working on {i+1:05d}.jpg')
-        lines, img = detect_edges(f'{i+1:05d}.jpg')
+    for i in range(1):
+        print(f'working on rb.test.jpg')
+        lines, img = detect_edges(f'rb.test.jpg')
         segmented = segment_lines(lines)
 
         intersections = segmented_intersections(segmented)
@@ -150,12 +155,12 @@ if __name__ == '__main__':
         # print(up, down, left, right)
         cropped = img[left:right, up:down]
 
-        cv2.imshow("Cropped", cropped)
-        cv2.waitKey()
+        # cv2.imshow("Cropped", cropped)
+        # cv2.waitKey()
 
         # msk = np.zeros(img.shape).astype(np.uint8)
         # result = cv2.fillPoly(msk, [sorted_ROI], (255,255,255))
         # masked_image = cv2.bitwise_and(img, msk)
-        cropped = cv2.resize(cropped, (30, 15))
+        cropped = cv2.resize(cropped, (300, 150))
 
-        cv2.imwrite(f'm_{i+1:05d}.png',cropped)
+        cv2.imwrite(f'rb.test.jpg',cropped)
